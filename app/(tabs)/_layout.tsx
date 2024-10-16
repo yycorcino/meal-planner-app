@@ -1,18 +1,10 @@
 import React from "react";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { CalendarDays, List, CookingPot, Carrot } from "lucide-react-native";
 import { Tabs } from "expo-router";
 
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -27,39 +19,31 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="calendar"
+        name="index"
         options={{
           title: "Calendar",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="calendar" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <CalendarDays color={color} size={15} />,
         }}
       />
       <Tabs.Screen
         name="lists"
         options={{
           title: "Lists",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="calendar" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <List color={color} size={15} />,
         }}
       />
       <Tabs.Screen
         name="meals"
         options={{
           title: "Meals",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="calendar" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <CookingPot color={color} size={15} />,
         }}
       />
       <Tabs.Screen
         name="ingredients"
         options={{
           title: "Ingredients",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="calendar" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Carrot color={color} size={15} />,
         }}
       />
     </Tabs>
