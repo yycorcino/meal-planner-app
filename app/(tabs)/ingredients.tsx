@@ -55,22 +55,22 @@ const IngredientsScreen = () => {
     </View>
   );
 
-  return (
+  return ( //container is basically what holds everything together, like what the user will see
     <View style={styles.container}>
       <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
         <Text style={styles.textStyle}>Add Ingredient</Text>
       </Pressable>
 
-      <FlatList
+      <FlatList //displays the ingredients
         data={ingredients}
         renderItem={({ item }) => <Item title={item.title} />}
         keyExtractor={item => item.id}
         numColumns={2}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
       />
 
       {}
-      <Modal
+      <Modal //slide animation for the modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
@@ -81,19 +81,19 @@ const IngredientsScreen = () => {
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>Enter Ingredient Name:</Text>
-            <TextInput
+            <TextInput //user can enter text
               style={styles.input}
               placeholder="e.g. avocados"
               placeholderTextColor="#808080"
               value={ingredientName}
               onChangeText={setIngredientName}
             />
-            <Pressable
+            <Pressable //for user to add ingredient
               style={[styles.button, styles.buttonClose]}
               onPress={addIngredient}>
               <Text style={styles.textStyle}>Save</Text>
             </Pressable>
-            <Pressable
+            <Pressable //for user to close the popup
               style={[styles.button, styles.buttonClose]}
               onPress={() => setModalVisible(false)}>
               <Text style={styles.textStyle}>Cancel</Text>
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     flex: 1,
     alignItems: 'center',
-    padding: 10,
+    padding: 19,
   },
   centeredView: {
     flex: 1,
