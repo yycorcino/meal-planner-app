@@ -13,6 +13,11 @@ import {
 
 //some example items. Will get rid of this but wanted to discuss how it should look when there is no user input, not sure if it should just be blank
 const IngredientsScreen = () => { 
+  const [displayVisible, setDisplayVisible] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] =  useState('');
+
+  
   const [modalVisible, setModalVisible] = useState(false);
   const [ingredientName, setIngredientName] = useState('');
   const [ingredients, setIngredients] = useState([
@@ -49,33 +54,63 @@ const IngredientsScreen = () => {
     setModalVisible(false);
   };
 
-  const Item = ({ title }: { title: string }) => (
-    <View style={styles.item}>
-      <Text style={[styles.title, { opacity: 0.45 }]}>{title}</Text>
-    </View>
-  );
+
+
+  const viewIngredient = (title: string, id) => { 
+    setModalTitle(title);
+    setModalData(id);
+    setDisplayVisible(!modalVisible);
+  }
+
 
   return (
     <View style={styles.container}>
-      <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
+      <Pressable style={[styles.button, styles.buttonOpen]} 
+        onPress={() => setModalVisible(true)}>
         <Text style={styles.textStyle}>Add Ingredient</Text>
       </Pressable>
 
+
       <FlatList
         data={ingredients}
-        renderItem={({ item }) => <Item title={item.title} />}
+
+        renderItem={({ item }) => (
+        <Pressable
+            style={[styles.item, styles.item]}
+            onPress={()=> viewIngredient(item.title,item.id)}>{}
+            <Text style={styles.textStyle}>{item.title} </Text>
+        </Pressable>)}
+        
         keyExtractor={item => item.id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
       />
+      
+      
+      
+      <Modal animationType="none" transparent={true} visible={displayVisible} >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text> { modalTitle }</Text>
+            <Text> { modalData }</Text>
+            <Pressable
+              style={[styles.button, styles.buttonClose]}
+              onPress={() => setDisplayVisible(false)}>
+              <Text style={styles.textStyle}>Cancel</Text>
+            </Pressable>
+            </View> 
+        </View>
+      </Modal>
 
-      {}
+
+
+
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
-          Alert.alert('Modal has been closed.');
+          //Alert.alert('Modal has been closed.');
           setModalVisible(!modalVisible);
         }}>
         <View style={styles.centeredView}>
@@ -119,13 +154,13 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   item: {
-    backgroundColor: '#d3d3d3',
-    marginVertical: 1,
-    marginHorizontal: 1,
-    borderRadius: 7,
+    backgroundColor: '#92de92',
+    marginVertical: 0.7,
+    marginHorizontal: 0.7,
+    borderRadius: 5,
     flex: 1,
     alignItems: 'center',
-    padding: 10,
+    padding: 20,
   },
   centeredView: {
     flex: 1,
