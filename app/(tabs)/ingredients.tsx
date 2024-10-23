@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 //some example items. Will get rid of this but wanted to discuss how it should look when there is no user input, not sure if it should just be blank
-const IngredientsScreen = () => { 
+const IngredientsScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [ingredientName, setIngredientName] = useState('');
   const [ingredients, setIngredients] = useState([
@@ -36,7 +36,7 @@ const IngredientsScreen = () => {
 
   const addIngredient = () => {
     if (ingredientName.trim() === '') {
-      Alert.alert('Enter ingredient name'); //if the user didnt enter anything
+      Alert.alert('Enter ingredient name'); //if the user didn't enter anything
       return;
     }
     //adds the new ingredient to the list
@@ -58,7 +58,7 @@ const IngredientsScreen = () => {
   return ( //container is basically what holds everything together, like what the user will see
     <View style={styles.container}>
       <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
-        <Text style={styles.textStyle}>Add Ingredient</Text>
+        <Text style={styles.textStyle}>+</Text>
       </Pressable>
 
       <FlatList //displays the ingredients
@@ -89,12 +89,12 @@ const IngredientsScreen = () => {
               onChangeText={setIngredientName}
             />
             <Pressable //for user to add ingredient
-              style={[styles.button, styles.buttonClose]}
+              style={styles.saveButton}
               onPress={addIngredient}>
               <Text style={styles.textStyle}>Save</Text>
             </Pressable>
             <Pressable //for user to close the popup
-              style={[styles.button, styles.buttonClose]}
+              style={styles.cancelButton}
               onPress={() => setModalVisible(false)}>
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
@@ -156,24 +156,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   button: {
-    borderRadius: 21,
-    padding: 18,
-    marginVertical: 3,
+    borderRadius: 0,
+    padding: 4,
+    marginVertical: 0,
+    height: 48,
   },
   buttonOpen: {
     backgroundColor: '#36454F',
   },
-  buttonClose: {
+  saveButton: {
     backgroundColor: '#36454F',
+    borderRadius: 5,
+    padding: 10,
+    marginVertical: 5,
+    width: '100%',
+  },
+  cancelButton: {
+    backgroundColor: '#36454F',
+    borderRadius: 5,
+    padding: 10,
+    marginVertical: 5,
+    width: '100%',
   },
   textStyle: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     textAlign: 'center',
+    fontSize: 29,
   },
   modalText: {
     marginBottom: 25,
     textAlign: 'center',
   },
 });
+
 export default IngredientsScreen;
