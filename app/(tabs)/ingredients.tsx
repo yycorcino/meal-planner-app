@@ -14,7 +14,7 @@ import {
 //some example items. Will get rid of this but wanted to discuss how it should look when there is no user input, not sure if it should just be blank
 const IngredientsScreen = () => { 
   const [displayVisible, setDisplayVisible] = useState(false);
-  const [modalData, setModalData] = useState([]);
+  const [modalData, setModalData] = useState('');
   const [modalTitle, setModalTitle] =  useState('');
 
   
@@ -55,8 +55,14 @@ const IngredientsScreen = () => {
   };
 
 
+  const doNothing = () => {
+    console.log('meal opened');
+    
+    //placeholder function for opening link to meal
+  }
 
-  const viewIngredient = (title: string, id) => { 
+
+  const viewIngredient = (title: string, id: string) => { 
     setModalTitle(title);
     setModalData(id);
     setDisplayVisible(!modalVisible);
@@ -93,6 +99,20 @@ const IngredientsScreen = () => {
           <View style={styles.modalView}>
             <Text> { modalTitle }</Text>
             <Text> { modalData }</Text>
+            <FlatList
+              data={ingredients}
+
+              renderItem={({ item }) => (
+              <Pressable
+                  style={[styles.item, styles.item]}
+                  onPress={()=> doNothing()}>{}
+                  <Text style={styles.textStyle}>{item.title} </Text>
+              </Pressable>)}
+              
+              keyExtractor={item => item.id}
+              numColumns={1}
+              showsVerticalScrollIndicator={false}
+            />
             <Pressable
               style={[styles.button, styles.buttonClose]}
               onPress={() => setDisplayVisible(false)}>
