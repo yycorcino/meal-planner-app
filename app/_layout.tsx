@@ -60,7 +60,7 @@ function RootLayoutNav() {
       <React.Suspense fallback={<ActivityIndicator size="large" />}>
         <SQLiteProvider
           databaseName="cookbook.db"
-          onInit={migrateDatabase}
+          //onInit={migrateDatabase}
           assetSource={{ assetId: require("../assets/cookbook.db") }}
           useSuspense
         >
