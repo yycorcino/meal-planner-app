@@ -10,7 +10,7 @@ import {
   TextInput,
   StatusBar,
 } from 'react-native';
-import MealList from '../../components/MealList'; // MealList component
+import ItemList from '../../components/ItemList'; // ItemList component
 
 interface Meal {
   id: string;
@@ -21,45 +21,70 @@ const MealsScreen: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [mealName, setMealName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [meals, setMeals] = useState<Meal[]>([
-    {
-      id: 'default_meal_chili',
-      title: 'Chili',
-    },
-    {
-      id: 'default_meal_pasta',
-      title: 'Pasta',
-    },
-    {
-      id: 'default_meal_salad',
-      title: 'Salad',
-    },
-  ]);
+  const [meals, setMeals] = useState<Meal[]>([]);
 
   const addMeal = () => {
     if (mealName.trim() === '') {
       Alert.alert('Enter a meal name');
       return;
     }
-    setMeals((prev) => [
-      ...prev,
+
+    console.log('Adding meal:', mealName);
+
+    setMeals((prevMeals) => [
+      ...prevMeals,
       { id: Date.now().toString(), title: mealName },
     ]);
+
     setMealName('');
+    setSearchQuery(''); // clear search query to make sure the new meal is visible
     setModalVisible(false);
+  };
+
+  const confirmDeleteMeal = (meal: Meal) => {
+    Alert.alert(
+      'Delete Meal',
+      `Are you sure you want to delete ${meal.title}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => deleteMeal(meal),
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const deleteMeal = (meal: Meal) => {
+    setMeals((prevMeals) => prevMeals.filter((m) => m.id !== meal.id));
+  };
+
+  // Function to handle search query change
+  const handleSearchQueryChange = (text: string) => {
+    setSearchQuery(text);
   };
 
   return (
     <View style={styles.container}>
       <SearchBar
         placeholder="Search Meals..."
-        onChangeText={setSearchQuery}
+        onChangeText={handleSearchQueryChange} // ignore error
         value={searchQuery}
         containerStyle={styles.searchBarContainer}
         inputContainerStyle={styles.searchInputContainer}
       />
 
-      <MealList meals={meals} searchQuery={searchQuery} />
+      <ItemList
+        items={meals}
+        searchQuery={searchQuery}
+        onDeleteItem={confirmDeleteMeal}
+        getTitle={(item) => item.title} // provides a way to extract title from Meal
+      />
+      
       <View style={styles.buttonContainer}>
         <Pressable
           style={[styles.button, styles.buttonOpen]}
@@ -74,7 +99,6 @@ const MealsScreen: React.FC = () => {
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
-          Alert.alert('Modal has been closed.');
           setModalVisible(!modalVisible);
         }}
       >
