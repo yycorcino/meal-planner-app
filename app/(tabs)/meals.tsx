@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // imports
+import React, { useState } from 'react';
 import { SearchBar } from 'react-native-elements';
 import {
   Alert,
@@ -8,16 +8,20 @@ import {
   Pressable,
   View,
   TextInput,
-  FlatList,
   StatusBar,
 } from 'react-native';
+import MealList from '../../components/MealList'; // MealList component
 
-// temporary default meals
-const MealsScreen = () => { 
+interface Meal {
+  id: string;
+  title: string;
+}
+
+const MealsScreen: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [mealName, setMealName] = useState('');
-  const [searchQuery, setSearchQuery] = useState(''); // State for search query
-  const [meals, setMeals] = useState([
+  const [searchQuery, setSearchQuery] = useState('');
+  const [meals, setMeals] = useState<Meal[]>([
     {
       id: 'default_meal_chili',
       title: 'Chili',
@@ -30,38 +34,23 @@ const MealsScreen = () => {
       id: 'default_meal_salad',
       title: 'Salad',
     },
-    // Add more default meals for demonstration
   ]);
 
   const addMeal = () => {
     if (mealName.trim() === '') {
-      Alert.alert('Enter a meal name'); // if the user didn't enter anything
+      Alert.alert('Enter a meal name');
       return;
     }
-    // adds the new meals to the list
-    setMeals(prev => [
+    setMeals((prev) => [
       ...prev,
       { id: Date.now().toString(), title: mealName },
     ]);
-    // clears input and closes modal
     setMealName('');
     setModalVisible(false);
   };
 
-  const Item = ({ title }: { title: string }) => (
-    <View style={styles.item}>
-      <Text style={[styles.title, { opacity: 0.45 }]}>{title}</Text>
-    </View>
-  );
-
-  // Filter meals based on search query
-  const filteredMeals = meals.filter(meal => 
-    meal.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
       <SearchBar
         placeholder="Search Meals..."
         onChangeText={setSearchQuery}
@@ -70,18 +59,12 @@ const MealsScreen = () => {
         inputContainerStyle={styles.searchInputContainer}
       />
 
-      <FlatList
-        data={filteredMeals} // Use the filtered meals for rendering
-        renderItem={({ item }) => <Item title={item.title} />}
-        keyExtractor={item => item.id}
-        numColumns={1}
-        showsVerticalScrollIndicator={false}
-        style={styles.list}
-      />
-
-      {/* Button Container */}
+      <MealList meals={meals} searchQuery={searchQuery} />
       <View style={styles.buttonContainer}>
-        <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
+        <Pressable
+          style={[styles.button, styles.buttonOpen]}
+          onPress={() => setModalVisible(true)}
+        >
           <Text style={styles.textStyle}>Add Meal</Text>
         </Pressable>
       </View>
@@ -93,12 +76,13 @@ const MealsScreen = () => {
         onRequestClose={() => {
           Alert.alert('Modal has been closed.');
           setModalVisible(!modalVisible);
-        }}>
+        }}
+      >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>Enter Meal Name:</Text>
             <TextInput
-              style={[styles.input, { textAlign: 'center' }]} // Center the text
+              style={[styles.input, { textAlign: 'center' }]}
               placeholder="e.g. Spaghetti"
               placeholderTextColor="#808080"
               value={mealName}
@@ -107,12 +91,14 @@ const MealsScreen = () => {
             <View style={styles.buttonContainerHorizontal}>
               <Pressable
                 style={[styles.button, styles.buttonClose]}
-                onPress={() => setModalVisible(false)}>
+                onPress={() => setModalVisible(false)}
+              >
                 <Text style={styles.textStyle}>Cancel</Text>
               </Pressable>
               <Pressable
                 style={[styles.button, styles.buttonClose]}
-                onPress={addMeal}>
+                onPress={addMeal}
+              >
                 <Text style={styles.textStyle}>Save</Text>
               </Pressable>
             </View>
@@ -123,7 +109,6 @@ const MealsScreen = () => {
   );
 };
 
-// Styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -139,25 +124,23 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     backgroundColor: '#d3d3d3',
   },
-  list: {
-    flex: 1, // Allows FlatList to take up remaining space
-  },
-  title: {                      
-    fontSize: 30,
-    fontWeight: 'normal',
+  buttonContainer: {
+    padding: 10,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    justifyContent: 'center',
-    color: '#000000',
   },
-  item: {                       
-    backgroundColor: '#d3d3d3',
-    marginVertical: 2,          
-    marginHorizontal: 10,      
-    borderRadius: 1,            
-    flex: 1,
-    alignItems: 'center',
-    padding: 10,            
-    height: 80,
+  button: {
+    borderRadius: 21,
+    padding: 18,
+    marginVertical: 3,
+    width: '45%',
+  },
+  buttonOpen: {
+    backgroundColor: '#36454F',
+    justifyContent: 'flex-end',
+  },
+  buttonClose: {
+    backgroundColor: '#36454F',
   },
   centeredView: {
     flex: 1,
@@ -165,7 +148,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 22,
   },
-  modalView: {                  
+  modalView: {
     margin: 20,
     backgroundColor: 'white',
     borderRadius: 21,
@@ -182,7 +165,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  input: {                      
+  input: {
     height: 40,
     borderColor: 'gray',
     borderWidth: 1,
@@ -190,28 +173,10 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 10,
   },
-  button: {                     
-    borderRadius: 21,
-    padding: 18,
-    marginVertical: 3,
-    width: '45%',
-  },
-  buttonOpen: {                 
-    backgroundColor: '#36454F',
-    justifyContent: 'flex-end',
-  },
-  buttonClose: {
-    backgroundColor: '#36454F',
-  },
-  buttonContainer: {
-    padding: 10, 
-    justifyContent: 'flex-end',
-    alignItems: 'center', 
-  },
   buttonContainerHorizontal: {
-    flexDirection: 'row',       
-    justifyContent: 'space-between', 
-    width: '100%',           
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   textStyle: {
     color: 'white',
