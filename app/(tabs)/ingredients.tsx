@@ -6,96 +6,126 @@ import {
   Text,
   Pressable,
   View,
-  TextInput,
   FlatList,
   StatusBar,
+  TextInput,
 } from 'react-native';
+import { SearchBar } from 'react-native-elements';
 
-//some example items. Will get rid of this but wanted to discuss how it should look when there is no user input, not sure if it should just be blank
 const IngredientsScreen = () => {
+  const [displayVisible, setDisplayVisible] = useState(false);
+  const [modalData, setModalData] = useState('');
+  const [modalTitle, setModalTitle] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [ingredientName, setIngredientName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [ingredients, setIngredients] = useState([
-    {
-      id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba',
-      title: 'Carrot',
-    },
-    {
-      id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63',
-      title: 'Onion',
-    },
-    {
-      id: '58694a0f-3da1-471f-bd96-145571e29d72',
-      title: 'Beef',
-    },
-    {
-      id: '5ac68afc-c605-48d3-a4f8-fbd91aa97f64',
-      title: 'Black Beans',
-    },
+    { id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba', title: 'Carrot' },
+    { id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63', title: 'Onion' },
+    { id: '58694a0f-3da1-471f-bd96-145571e29d72', title: 'Beef' },
+    { id: '5ac68afc-c605-48d3-a4f8-fbd91aa97f64', title: 'Black Beans' },
   ]);
 
   const addIngredient = () => {
     if (ingredientName.trim() === '') {
-      Alert.alert('Enter ingredient name'); //if the user didn't enter anything
+      Alert.alert('Enter ingredient name');
       return;
     }
-    //adds the new ingredient to the list
     setIngredients(prev => [
       ...prev,
       { id: Date.now().toString(), title: ingredientName },
     ]);
-    //clears input and closes modal
     setIngredientName('');
     setModalVisible(false);
   };
 
-  const Item = ({ title }: { title: string }) => (
-    <View style={styles.item}>
-      <Text style={[styles.title, { opacity: 0.45 }]}>{title}</Text>
-    </View>
+  const doNothing = () => {
+    console.log('meal opened');
+  };
+
+  const viewIngredient = (title: string, id: string) => {
+    setModalTitle(title);
+    setModalData(id);
+    setDisplayVisible(!modalVisible);
+  };
+
+  //filter ingredients based on user search
+  const filteredIngredients = ingredients.filter(ingredient =>
+    ingredient.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  return ( //container is basically what holds everything together, like what the user will see
+//page container
+  return (
     <View style={styles.container}>
-      <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
-        <Text style={styles.textStyle}>+</Text>
-      </Pressable>
-
-      <FlatList //displays the ingredients
-        data={ingredients}
-        renderItem={({ item }) => <Item title={item.title} />}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        showsVerticalScrollIndicator={true}
+      {}
+      <SearchBar
+        placeholder="Search ingredients..."
+        onChangeText={setSearchQuery} //ignore the error
+        value={searchQuery}
+        platform="default"
+        containerStyle={styles.searchBarContainer}
+        inputContainerStyle={styles.searchInputContainer}
       />
 
-      {}
-      <Modal //slide animation for the modal
+      <FlatList
+        data={filteredIngredients} //Use filtered ingredients
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.item}
+            onPress={() => viewIngredient(item.title, item.id)}>
+            <Text style={styles.textStyle}>{item.title}</Text>
+          </Pressable>
+        )}
+        keyExtractor={item => item.id}
+        numColumns={2}
+        showsVerticalScrollIndicator={false}
+      />
+
+      <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
+        <Text style={styles.plusButtonText}>+</Text>
+      </Pressable>
+
+      <Modal animationType="none" transparent={true} visible={displayVisible}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Text>{modalTitle}</Text>
+            <Text>{modalData}</Text>
+            <FlatList
+              data={ingredients}
+              renderItem={({ item }) => (
+                <Pressable style={styles.item} onPress={() => doNothing()}>
+                  <Text style={styles.textStyle}>{item.title}</Text>
+                </Pressable>
+              )}
+              keyExtractor={item => item.id}
+              numColumns={1}
+              showsVerticalScrollIndicator={false}
+            />
+            <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setDisplayVisible(false)}>
+              <Text style={styles.textStyle}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal //add ingredient pop-up
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          Alert.alert('Modal has been closed.');
-          setModalVisible(!modalVisible);
-        }}>
+        onRequestClose={() => setModalVisible(!modalVisible)}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>Enter Ingredient Name:</Text>
-            <TextInput //user can enter text
+            <TextInput
               style={styles.input}
               placeholder="e.g. avocados"
               placeholderTextColor="#808080"
               value={ingredientName}
               onChangeText={setIngredientName}
             />
-            <Pressable //for user to add ingredient
-              style={styles.saveButton}
-              onPress={addIngredient}>
+            <Pressable style={styles.saveButton} onPress={addIngredient}>
               <Text style={styles.textStyle}>Save</Text>
             </Pressable>
-            <Pressable //for user to close the popup
-              style={styles.cancelButton}
-              onPress={() => setModalVisible(false)}>
+            <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
           </View>
@@ -112,20 +142,24 @@ const styles = StyleSheet.create({
     marginTop: StatusBar.currentHeight || 0,
     backgroundColor: '#F0EAD6',
   },
-  title: {
-    fontSize: 14,
-    fontWeight: 'normal',
-    marginBottom: 140,
-    color: '#000000',
+  searchBarContainer: {
+    backgroundColor: '#F0EAD6',
+    borderBottomWidth: 0,
+    borderTopWidth: 0,
+    marginBottom: 10,
+  },
+  searchInputContainer: {
+    backgroundColor: '#D3D3D3',
+    borderRadius: 5,
   },
   item: {
-    backgroundColor: '#d3d3d3',
-    marginVertical: 1,
-    marginHorizontal: 1,
-    borderRadius: 7,
+    backgroundColor: '#92de92',
+    marginVertical: 0.7,
+    marginHorizontal: 0.7,
+    borderRadius: 5,
     flex: 1,
     alignItems: 'center',
-    padding: 19,
+    padding: 20,
   },
   centeredView: {
     flex: 1,
@@ -178,11 +212,21 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     width: '100%',
   },
+  buttonClose: {
+    backgroundColor: '#36454F',
+  },
   textStyle: {
     color: 'white',
     fontWeight: 'normal',
     textAlign: 'center',
-    fontSize: 29,
+    fontSize: 20,
+  },
+  plusButtonText: {
+    color: 'white',
+    fontWeight: '200',
+    textAlign: 'center',
+    fontSize: 42,
+    marginTop: -7,
   },
   modalText: {
     marginBottom: 25,
