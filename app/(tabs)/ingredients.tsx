@@ -31,16 +31,20 @@ const IngredientsScreen = () => {
       Alert.alert('Enter ingredient name');
       return;
     }
+    //adds the new ingredient to the list
     setIngredients(prev => [
       ...prev,
       { id: Date.now().toString(), title: ingredientName },
     ]);
+    //clears input and closes modal
     setIngredientName('');
     setModalVisible(false);
   };
 
   const doNothing = () => {
     console.log('meal opened');
+
+    //placeholder function for opening link to meal
   };
 
   const viewIngredient = (title: string, id: string) => {
