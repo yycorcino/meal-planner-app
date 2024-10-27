@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; //imports
+import React, { useState } from 'react';
 import {
   Alert,
   Modal,
@@ -25,7 +25,8 @@ const IngredientsScreen = () => {
     { id: '58694a0f-3da1-471f-bd96-145571e29d72', title: 'Beef' },
     { id: '5ac68afc-c605-48d3-a4f8-fbd91aa97f64', title: 'Black Beans' },
   ]);
-
+  const [isEditing, setIsEditing] = useState(false);
+  //functions
   const addIngredient = () => {
     if (ingredientName.trim() === '') {
       Alert.alert('Enter ingredient name');
@@ -44,23 +45,42 @@ const IngredientsScreen = () => {
   const doNothing = () => {
     console.log('meal opened');
 
-    //placeholder function for opening link to meal
-  };
+    // Placeholder function for opening link to meal
+};
 
-  const viewIngredient = (title: string, id: string) => {
+  const viewIngredient = (title, id) => { //ignore error
     setModalTitle(title);
     setModalData(id);
-    setDisplayVisible(!modalVisible);
+    setDisplayVisible(true);
   };
 
+  const editIngredient = () => {
+    setIsEditing(true);
+    setIngredientName(modalTitle);
+  };
+
+  const saveEdit = () => {
+    setIngredients(prev =>
+      prev.map(ingredient =>
+        ingredient.id === modalData ? { ...ingredient, title: ingredientName } : ingredient
+      )
+    );
+    setIsEditing(false);
+    setDisplayVisible(false);
+    setIngredientName('');
+  };
+
+  const deleteIngredient = () => {
+    setIngredients(prev => prev.filter(ingredient => ingredient.id !== modalData));
+    setDisplayVisible(false);
+  };
   //filter ingredients based on user search
   const filteredIngredients = ingredients.filter(ingredient =>
     ingredient.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
-//page container
+  //page container
   return (
     <View style={styles.container}>
-      {}
       <SearchBar
         placeholder="Search ingredients..."
         onChangeText={setSearchQuery} //ignore the error
@@ -71,11 +91,9 @@ const IngredientsScreen = () => {
       />
 
       <FlatList
-        data={filteredIngredients} //Use filtered ingredients
+        data={filteredIngredients}
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.item}
-            onPress={() => viewIngredient(item.title, item.id)}>
+          <Pressable style={styles.item} onPress={() => viewIngredient(item.title, item.id)}>
             <Text style={styles.textStyle}>{item.title}</Text>
           </Pressable>
         )}
@@ -88,41 +106,48 @@ const IngredientsScreen = () => {
         <Text style={styles.plusButtonText}>+</Text>
       </Pressable>
 
-      <Modal animationType="none" transparent={true} visible={displayVisible}>
+      <Modal animationType="slide" transparent={true} visible={displayVisible}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            <Text>{modalTitle}</Text>
-            <Text>{modalData}</Text>
-            <FlatList
-              data={ingredients}
-              renderItem={({ item }) => (
-                <Pressable style={styles.item} onPress={() => doNothing()}>
-                  <Text style={styles.textStyle}>{item.title}</Text>
+            {isEditing ? (
+              <>
+                <Text>Edit Ingredient Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter new name"
+                  value={ingredientName}
+                  onChangeText={setIngredientName}
+                />
+                <Pressable style={styles.saveButton} onPress={saveEdit}>
+                  <Text style={styles.textStyle}>Save</Text>
                 </Pressable>
-              )}
-              keyExtractor={item => item.id}
-              numColumns={1}
-              showsVerticalScrollIndicator={false}
-            />
-            <Pressable style={[styles.button, styles.buttonClose]} onPress={() => setDisplayVisible(false)}>
+              </>
+            ) : (
+              <>
+                <Text>{modalTitle}</Text>
+                <Pressable style={styles.editButton} onPress={editIngredient}>
+                  <Text style={styles.textStyle}>Edit</Text>
+                </Pressable>
+                <Pressable style={styles.deleteButton} onPress={deleteIngredient}>
+                  <Text style={styles.textStyle}>Delete</Text>
+                </Pressable>
+              </>
+            )}
+            <Pressable style={styles.cancelButton} onPress={() => setDisplayVisible(false)}>
+
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
 
-      <Modal //add ingredient pop-up
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(!modalVisible)}>
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(!modalVisible)}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>Enter Ingredient Name:</Text>
             <TextInput
               style={styles.input}
               placeholder="e.g. avocados"
-              placeholderTextColor="#808080"
               value={ingredientName}
               onChangeText={setIngredientName}
             />
@@ -139,7 +164,7 @@ const IngredientsScreen = () => {
   );
 };
 
-//Styling
+//styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -235,6 +260,20 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: 25,
     textAlign: 'center',
+  },
+  editButton: {
+    backgroundColor: '#36454F',
+    borderRadius: 5,
+    padding: 10,
+    marginVertical: 5,
+    width: '100%',
+  },
+  deleteButton: {
+    backgroundColor: '#36454F',
+    borderRadius: 5,
+    padding: 10,
+    marginVertical: 5,
+    width: '100%',
   },
 });
 
