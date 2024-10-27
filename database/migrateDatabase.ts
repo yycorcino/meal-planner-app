@@ -170,6 +170,14 @@ async function migrateDatabase(db: SQLiteDatabase) {
         VALUES ('Home Favorites', '[2, 3, 5]', 'Meals I can eat any day.');
       `;
     await db.execAsync(listInserts);
+
+    // insert copied items from ingredients into shopping cart table
+    const shoppingCartInserts = `
+        INSERT INTO shopping_cart (meal_id, product_id, quantity, unit_of_measure_id, in_cart)
+        SELECT meal_id, product_id, quantity, unit_of_measure_id, 0
+        FROM ingredient;
+      `;
+    await db.execAsync(shoppingCartInserts);
     currentDbVersion = 1;
   }
 
