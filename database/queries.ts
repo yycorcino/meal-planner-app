@@ -3,9 +3,9 @@ import { relationships } from "./databaseRelationships";
 
 // allows for custom select all searches
 type getArgumentType = {
-  columnName?: string;
+  columnName?: string | string[];
   action?: "LIKE" | "=";
-  value?: any;
+  value?: any | any[];
 };
 
 /**
@@ -54,12 +54,12 @@ export async function writeByQuery(
 
 /**
  * All screens will use this function to get all entries and
- * allow for search.
+ * allow by search.
  * @param {SQLiteDatabase} - Database connection.
- * @param {string} query - The SQL statement to run on db.
- * @params {any[]} [params] - Additional params to include with query.
- * @returns {Promise<number>} -  A promise that resolves to a number of last inserted row id.
- * If the write query fails, -1 is returned
+ * @param {string} tableName - The targeted table.
+ * @param {getArgumentType} argument - Additional filters.
+ * @returns {Promise<any[]>} - Returns the fetched entries.
+ * If the fetch fails, returns [].
  */
 export async function getAll(
   db: SQLiteDatabase,
@@ -99,5 +99,54 @@ export async function getAll(
     query += ` WHERE ${argument.columnName} ${argument.action} ?`;
     params.push(argument.value);
   }
+  return await fetchByQuery(db, query, params);
+}
+
+/**
+ * All screens will use this function to get insert entry.
+ * @param {SQLiteDatabase} - Database connection.
+ * @param {string} tableName - The targeted table.
+ * @param {T} object - The entry needing inserted.
+ * @returns {Promise<any[]>} - A promise that resolves to a number of last inserted row id.
+ * If the write query fails, -1 is returned
+ */
+export async function insertEntry<T>(
+  db: SQLiteDatabase,
+  tableName: string,
+  object: T
+): Promise<any[]> {
+  const columns = Object.keys(object).join(", "); // col1, col2, col3
+  const params: any = Object.values(object); // [val1 , val2, val3]
+  const paramHolders = params.map(() => "?").join(", "); // "?, ?, ?"
+
+  const query = `INSERT INTO ${tableName} (${columns}) VALUES (${paramHolders})`;
+  return await fetchByQuery(db, query, params);
+}
+
+/**
+ * All screens will use this function to get delete entry.
+ * @param {SQLiteDatabase} - Database connection.
+ * @param {string} tableName - The targeted table.
+ * @param {getArgumentType} argument - Additional filters.
+ * @returns {Promise<any[]>} - A promise that resolves to a number of last inserted row id.
+ * If the write query fails, -1 is returned
+ */
+export async function deleteEntry(
+  db: SQLiteDatabase,
+  tableName: string,
+  argument: getArgumentType
+): Promise<any[]> {
+  // convert to array if isn't already
+  const columnNames = Array.isArray(argument.columnName)
+    ? argument.columnName
+    : [argument.columnName];
+  const params = Array.isArray(argument.value)
+    ? argument.value
+    : [argument.value];
+
+  const clause = columnNames
+    .map((col, index) => `${col} ${argument.action} ?`)
+    .join(" AND ");
+  const query = `DELETE FROM ${tableName} WHERE ${clause}`;
   return await fetchByQuery(db, query, params);
 }
