@@ -1,35 +1,46 @@
-import { StyleSheet } from "react-native";
+import React, { Component } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import CalendarPicker from "react-native-calendar-picker";
 
-import EditScreenInfo from "@/components/EditScreenInfo";
-import { Text, View } from "@/components/Themed";
+interface State {
+  selectedStartDate: Date | null;
+}
 
-export default function IndexScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Calendar</Text>
-      <View
-        style={styles.separator}
-        lightColor="#eee"
-        darkColor="rgba(255,255,255,0.1)"
-      />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
-  );
+export default class IndexScreen extends Component<{}, State> {
+  constructor(props: {}) {
+    super(props);
+    this.state = {
+      selectedStartDate: null,
+    };
+    this.onDateChange = this.onDateChange.bind(this);
+  }
+
+  onDateChange(date: Date) {
+    this.setState({
+      selectedStartDate: date,
+    });
+  }
+
+  render() {
+    const { selectedStartDate } = this.state;
+    const startDate = selectedStartDate ? selectedStartDate.toString() : "";
+
+    return (
+      <View style={styles.container}>
+        <CalendarPicker onDateChange={this.onDateChange} />
+
+        <View>
+          <Text>SELECTED DATE: {startDate}</Text>
+        </View>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: "80%",
+    backgroundColor: "#FFFFFF",
+    marginTop: 100,
   },
 });

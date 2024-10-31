@@ -45,10 +45,10 @@ const IngredientsScreen = () => {
   const doNothing = () => {
     console.log('meal opened');
 
-    // Placeholder function for opening link to meal
+    //Placeholder function for opening link to meal
 };
 
-  const viewIngredient = (title, id) => { //ignore error
+  const viewIngredient = (title: React.SetStateAction<string>, id: React.SetStateAction<string>) => { 
     setModalTitle(title);
     setModalData(id);
     setDisplayVisible(true);
