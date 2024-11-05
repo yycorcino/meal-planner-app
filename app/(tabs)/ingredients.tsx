@@ -137,6 +137,20 @@ const IngredientsScreen = () => {
 
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
+            <FlatList
+              data={ingredients}
+
+              renderItem={({ item }) => (
+              <Pressable
+                  style={[styles.item, styles.item]}
+                  onPress={()=> doNothing()}>{}
+                  <Text style={styles.textStyle}>{item.title} </Text>
+              </Pressable>)}
+              
+              keyExtractor={item => item.id}
+              numColumns={1}
+              showsVerticalScrollIndicator={false}
+            />
           </View>
         </View>
       </Modal>
