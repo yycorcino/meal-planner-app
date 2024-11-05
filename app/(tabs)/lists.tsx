@@ -7,7 +7,7 @@ import {
   Pressable,
   StatusBar,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+//import DateTimePicker from "@react-native-community/datetimepicker";
 import ItemList from "../../components/ItemList";
 import { StyleSheet } from "react-native";
 
