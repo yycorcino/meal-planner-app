@@ -1,20 +1,25 @@
 /* A list of generic items that are rendered by the ItemList component. */
 
-import React from 'react';
-import { FlatList } from 'react-native';
-import Item from './Item'; // import the Item component
+import React from "react";
+import { FlatList } from "react-native";
+import Item from "./Item";
 
 interface ItemListProps<T> {
   items: T[];
   searchQuery: string;
-  onDeleteItem: (item: T) => void; // accept the delete function
-  getTitle: (item: T) => string; // function to get the title from the item
+  onDeleteItem: (item: T) => void;
+  getTitle: (item: T) => string;
 }
 
 const ItemList = <T,>({ items, searchQuery, onDeleteItem, getTitle }: ItemListProps<T>) => {
-  const filteredItems = items.filter(item =>
-    getTitle(item).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items.filter(item => {
+    const title = getTitle(item);
+    return (
+      typeof title === "string" &&
+      typeof searchQuery === "string" &&
+      title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   return (
     <FlatList
@@ -23,10 +28,10 @@ const ItemList = <T,>({ items, searchQuery, onDeleteItem, getTitle }: ItemListPr
         <Item 
           title={getTitle(item)} 
           onDelete={() => onDeleteItem(item)} 
-          item={item} // pass the item prop here
+          item={item}
         />
       )}
-      keyExtractor={(item) => getTitle(item)} // make sure the key is unique
+      keyExtractor={(item) => getTitle(item)}
       numColumns={1}
       showsVerticalScrollIndicator={false}
     />
