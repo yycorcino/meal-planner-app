@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { StyleSheet, Text, View, Modal, Button, TouchableOpacity } from "react-native";
 import CalendarPicker from "react-native-calendar-picker";
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface State {
   selectedStartDate: Date | null;
@@ -35,13 +36,26 @@ export default class IndexScreen extends Component<{}, State> {
 
     return (
       <View style={styles.container}>
-        <CalendarPicker onDateChange={this.onDateChange} />
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => console.log("Settings Pressed")}
+        >
+          <Ionicons name="settings-outline" size={24} color="#FFFFFF" />  {}
+        </TouchableOpacity>
+
+        <View style={styles.calendarContainer}>
+          <CalendarPicker
+            onDateChange={this.onDateChange}
+            selectedDayColor="#FFFFFF"
+            selectedDayTextColor="#000000"
+          />
+        </View>
+
 
         <View style={styles.dateTextContainer}>
           <Text>SELECTED DATE: {startDate}</Text>
         </View>
 
-        {}
         <Modal
           animationType="slide"
           transparent={true}
@@ -52,7 +66,6 @@ export default class IndexScreen extends Component<{}, State> {
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Options for {startDate}</Text>
               <Button title="Add List" onPress={() => console.log("Add List Pressed")} />
-              <Button title="Settings" onPress={() => console.log("Settings Pressed")} />
               <Button title="Close" onPress={() => this.toggleModal(false)} color="red" />
             </View>
           </View>
@@ -65,8 +78,19 @@ export default class IndexScreen extends Component<{}, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#D3D3D3",
     marginTop: 0,
+  },
+  settingsButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    padding: 10,
+    backgroundColor: "#36454F",
+    borderRadius: 5,
+  },
+  calendarContainer: {
+    marginTop: 177,
   },
   dateTextContainer: {
     marginTop: 20,
