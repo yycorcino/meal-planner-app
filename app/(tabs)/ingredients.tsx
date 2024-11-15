@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   item: {
-    backgroundColor: '#92de92',
+    backgroundColor: '#D3D3D3',
     marginVertical: 0.7,
     marginHorizontal: 0.7,
     borderRadius: 5,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#36454F',
   },
   textStyle: {
-    color: 'white',
+    color: 'black',
     fontWeight: 'normal',
     textAlign: 'center',
     fontSize: 20,
