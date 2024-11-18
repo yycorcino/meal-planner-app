@@ -19,7 +19,7 @@ export default function CartScreen() {
     );
     setCartItems(updatedItems);
   };
-
+// @ts-ignore
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
       {}
