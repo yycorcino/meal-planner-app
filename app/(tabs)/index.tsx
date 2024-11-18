@@ -1,5 +1,12 @@
 import React, { Component } from "react";
-import { StyleSheet, Text, View, Modal, Button, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Modal,
+  Button,
+  TouchableOpacity,
+} from "react-native";
 import CalendarPicker from "react-native-calendar-picker";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
@@ -20,15 +27,13 @@ export default class IndexScreen extends Component<{}, State> {
     this.toggleModal = this.toggleModal.bind(this);
   }
 
-  
   onDateChange(date: Date) {
     this.setState({
       selectedStartDate: date,
-      modalVisible: true, 
+      modalVisible: true,
     });
   }
 
-  
   toggleModal(visible: boolean) {
     this.setState({ modalVisible: visible });
   }
@@ -40,13 +45,18 @@ export default class IndexScreen extends Component<{}, State> {
         selectedStartDate={selectedStartDate}
         modalVisible={modalVisible}
         onDateChange={this.onDateChange}
-        toggleModal={this.toggleModal} 
+        toggleModal={this.toggleModal}
       />
     );
   }
 }
 
-function IndexScreenWithRouter(props: State & { onDateChange: (date: Date) => void, toggleModal: (visible: boolean) => void }) {
+function IndexScreenWithRouter(
+  props: State & {
+    onDateChange: (date: Date) => void;
+    toggleModal: (visible: boolean) => void;
+  }
+) {
   const router = useRouter();
 
   const { selectedStartDate, modalVisible, onDateChange, toggleModal } = props;
@@ -56,14 +66,21 @@ function IndexScreenWithRouter(props: State & { onDateChange: (date: Date) => vo
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.settingsButton}
-        onPress={() => router.push("/settings")} 
+        onPress={() => router.push("/settings")}
       >
         <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.cartButton}
+        onPress={() => router.push("/cart")}
+      >
+        <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+
       <View style={styles.calendarContainer}>
         <CalendarPicker
-          onDateChange={onDateChange} 
+          onDateChange={onDateChange}
           selectedDayColor="#FFFFFF"
           selectedDayTextColor="#000000"
         />
@@ -77,7 +94,7 @@ function IndexScreenWithRouter(props: State & { onDateChange: (date: Date) => vo
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => toggleModal(false)} 
+        onRequestClose={() => toggleModal(false)}
       >
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
@@ -85,7 +102,7 @@ function IndexScreenWithRouter(props: State & { onDateChange: (date: Date) => vo
             <Button title="Add List" onPress={() => console.log("Add List Pressed")} />
             <Button
               title="Cancel"
-              onPress={() => toggleModal(false)} 
+              onPress={() => toggleModal(false)}
               color="red"
             />
           </View>
@@ -105,6 +122,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 5,
     right: 5,
+    padding: 10,
+    backgroundColor: "#36454F",
+    borderRadius: 5,
+  },
+  cartButton: {
+    position: "absolute",
+    top: 5,
+    right: 50, 
     padding: 10,
     backgroundColor: "#36454F",
     borderRadius: 5,
@@ -134,3 +159,4 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 });
+
