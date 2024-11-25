@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Modal,
@@ -9,75 +9,116 @@ import {
   FlatList,
   StatusBar,
   TextInput,
-} from 'react-native';
-import { SearchBar } from 'react-native-elements';
+} from "react-native";
+import { SearchBar } from "react-native-elements";
+import { useSQLiteContext } from "expo-sqlite";
+import {
+  getAll,
+  insertEntry,
+  deleteEntry,
+  updateEntry,
+} from "@/database/queries";
+
+interface Product {
+  product_id: number;
+  name: string;
+}
 
 const IngredientsScreen = () => {
   const [displayVisible, setDisplayVisible] = useState(false);
-  const [modalData, setModalData] = useState('');
-  const [modalTitle, setModalTitle] = useState('');
+  const [modalData, setModalData] = useState("");
+  const [modalTitle, setModalTitle] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [ingredientName, setIngredientName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [ingredients, setIngredients] = useState([
-    { id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba', title: 'Carrot' },
-    { id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63', title: 'Onion' },
-    { id: '58694a0f-3da1-471f-bd96-145571e29d72', title: 'Beef' },
-    { id: '5ac68afc-c605-48d3-a4f8-fbd91aa97f64', title: 'Black Beans' },
-  ]);
+  const [ingredientName, setIngredientName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [ingredients, setIngredients] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  //functions
-  const addIngredient = () => {
-    if (ingredientName.trim() === '') {
-      Alert.alert('Enter ingredient name');
+  const db = useSQLiteContext();
+
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      const fetchedIngredients = await getAll(db, "product");
+      setIngredients(fetchedIngredients);
+    };
+    fetchIngredients();
+  }, [db]);
+
+  const addIngredient = async () => {
+    if (ingredientName.trim() === "") {
+      Alert.alert("Enter a ingredient name");
       return;
     }
-    //adds the new ingredient to the list
-    setIngredients(prev => [
-      ...prev,
-      { id: Date.now().toString(), title: ingredientName },
-    ]);
-    //clears input and closes modal
-    setIngredientName('');
+    console.log("Adding ingredient:", ingredientName);
+
+    const newProduct = {
+      name: ingredientName,
+    };
+    insertEntry(db, "product", newProduct);
+
+    const fetchedMeals = await getAll(db, "product");
+    setIngredients(fetchedMeals);
+
+    setIngredientName("");
+    setSearchQuery(""); // clear search query to make sure the new meal is visible
     setModalVisible(false);
   };
 
   const doNothing = () => {
-    console.log('meal opened');
+    console.log("meal opened");
 
     //Placeholder function for opening link to meal
-};
+  };
 
-  const viewIngredient = (title: React.SetStateAction<string>, id: React.SetStateAction<string>) => { 
+  const viewIngredient = (
+    title: React.SetStateAction<string>,
+    id: React.SetStateAction<string>
+  ) => {
     setModalTitle(title);
     setModalData(id);
     setDisplayVisible(true);
   };
 
-  const editIngredient = () => {
+  const editIngredient = async () => {
     setIsEditing(true);
     setIngredientName(modalTitle);
   };
 
-  const saveEdit = () => {
-    setIngredients(prev =>
-      prev.map(ingredient =>
-        ingredient.id === modalData ? { ...ingredient, title: ingredientName } : ingredient
-      )
+  const saveEdit = async () => {
+    updateEntry(
+      db,
+      "product",
+      {
+        columnName: "product_id",
+        action: "=",
+        value: modalData,
+      },
+      { name: ingredientName }
     );
+    const fetchedMeals = await getAll(db, "product");
+    setIngredients(fetchedMeals);
+
     setIsEditing(false);
     setDisplayVisible(false);
-    setIngredientName('');
+    setIngredientName("");
   };
 
-  const deleteIngredient = () => {
-    setIngredients(prev => prev.filter(ingredient => ingredient.id !== modalData));
+  const deleteIngredient = async () => {
+    deleteEntry(db, "product", {
+      columnName: "product_id",
+      action: "=",
+      value: modalData,
+    });
+    const fetchedMeals = await getAll(db, "product");
+    setIngredients(fetchedMeals);
+
     setDisplayVisible(false);
   };
+
   //filter ingredients based on user search
-  const filteredIngredients = ingredients.filter(ingredient =>
-    ingredient.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredIngredients = ingredients.filter((ingredient) =>
+    ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
   //page container
   return (
     <View style={styles.container}>
@@ -94,16 +135,22 @@ const IngredientsScreen = () => {
       <FlatList
         data={filteredIngredients}
         renderItem={({ item }) => (
-          <Pressable style={styles.item} onPress={() => viewIngredient(item.title, item.id)}>
-            <Text style={styles.textStyle}>{item.title}</Text>
+          <Pressable
+            style={styles.item}
+            onPress={() => viewIngredient(item.name, item.product_id)}
+          >
+            <Text style={styles.textStyle}>{item.name}</Text>
           </Pressable>
         )}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.product_id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
       />
 
-      <Pressable style={[styles.button, styles.buttonOpen]} onPress={() => setModalVisible(true)}>
+      <Pressable
+        style={[styles.button, styles.buttonOpen]}
+        onPress={() => setModalVisible(true)}
+      >
         <Text style={styles.plusButtonText}>+</Text>
       </Pressable>
 
@@ -129,26 +176,32 @@ const IngredientsScreen = () => {
                 <Pressable style={styles.editButton} onPress={editIngredient}>
                   <Text style={styles.textStyle}>Edit</Text>
                 </Pressable>
-                <Pressable style={styles.deleteButton} onPress={deleteIngredient}>
+                <Pressable
+                  style={styles.deleteButton}
+                  onPress={deleteIngredient}
+                >
                   <Text style={styles.textStyle}>Delete</Text>
                 </Pressable>
               </>
             )}
-            <Pressable style={styles.cancelButton} onPress={() => setDisplayVisible(false)}>
-
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setDisplayVisible(false)}
+            >
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
             <FlatList
               data={ingredients}
-
               renderItem={({ item }) => (
-              <Pressable
+                <Pressable
                   style={[styles.item, styles.item]}
-                  onPress={()=> doNothing()}>{}
-                  <Text style={styles.textStyle}>{item.title} </Text>
-              </Pressable>)}
-              
-              keyExtractor={item => item.id}
+                  onPress={() => doNothing()}
+                >
+                  {}
+                  <Text style={styles.textStyle}>{item.name} </Text>
+                </Pressable>
+              )}
+              keyExtractor={(item) => item.product_id}
               numColumns={1}
               showsVerticalScrollIndicator={false}
             />
@@ -156,7 +209,12 @@ const IngredientsScreen = () => {
         </View>
       </Modal>
 
-      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(!modalVisible)}>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(!modalVisible)}
+      >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>Enter Ingredient Name:</Text>
@@ -169,7 +227,10 @@ const IngredientsScreen = () => {
             <Pressable style={styles.saveButton} onPress={addIngredient}>
               <Text style={styles.textStyle}>Save</Text>
             </Pressable>
-            <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setModalVisible(false)}
+            >
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
           </View>
@@ -184,10 +245,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
-    backgroundColor: '#F0EAD6',
+    backgroundColor: "#F0EAD6",
   },
   searchBarContainer: {
-    backgroundColor: '#F0EAD6',
+    backgroundColor: "#F0EAD6",
     borderBottomWidth: 0,
     borderTopWidth: 0,
     marginBottom: 10,
@@ -202,22 +263,22 @@ const styles = StyleSheet.create({
     marginHorizontal: 0.7,
     borderRadius: 5,
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     padding: 20,
   },
   centeredView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 22,
   },
   modalView: {
     margin: 20,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 21,
     padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -227,10 +288,10 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: "gray",
     borderWidth: 1,
     marginBottom: 15,
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 10,
   },
   button: {
@@ -240,55 +301,55 @@ const styles = StyleSheet.create({
     height: 48,
   },
   buttonOpen: {
-    backgroundColor: '#36454F',
+    backgroundColor: "#36454F",
   },
   saveButton: {
-    backgroundColor: '#36454F',
+    backgroundColor: "#36454F",
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: '100%',
+    width: "100%",
   },
   cancelButton: {
-    backgroundColor: '#36454F',
+    backgroundColor: "#36454F",
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: '100%',
+    width: "100%",
   },
   buttonClose: {
-    backgroundColor: '#36454F',
+    backgroundColor: "#36454F",
   },
   textStyle: {
-    color: 'white',
-    fontWeight: 'normal',
-    textAlign: 'center',
+    color: "white",
+    fontWeight: "normal",
+    textAlign: "center",
     fontSize: 20,
   },
   plusButtonText: {
-    color: 'white',
-    fontWeight: '200',
-    textAlign: 'center',
+    color: "white",
+    fontWeight: "200",
+    textAlign: "center",
     fontSize: 42,
     marginTop: -7,
   },
   modalText: {
     marginBottom: 25,
-    textAlign: 'center',
+    textAlign: "center",
   },
   editButton: {
-    backgroundColor: '#36454F',
+    backgroundColor: "#36454F",
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: '100%',
+    width: "100%",
   },
   deleteButton: {
-    backgroundColor: '#36454F',
+    backgroundColor: "#36454F",
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: '100%',
+    width: "100%",
   },
 });
 
