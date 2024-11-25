@@ -17,7 +17,10 @@ interface Meal {
   meal_id: number;
   name: string;
   details: string;
+  ingredients: string[];
+  quantities: string[];
 }
+
 
 const MealsScreen = () => {
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -28,8 +31,10 @@ const MealsScreen = () => {
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [mealDescription, setMealDescription] = useState("");
-  const [ingredients, setIngredients] = useState(["Tomato", "Cheese", "Basil"]);
-  const [quantities, setQuantities] = useState(["2 pcs", "100g", "5 leaves"]);
+  const [ingredients, setIngredients] = useState(["Best Ingredient", "2nd Best Ingredient"]);
+  const [quantities, setQuantities] = useState(["1 cup", "1 cup"]);
+  const [filteredIngredients, setFilteredIngredients] = useState(ingredients);
+  const [ingredientSearchQuery, setIngredientSearchQuery] = useState("");
 
   const addMeal = () => {
     if (mealName.trim() === "") {
@@ -40,26 +45,38 @@ const MealsScreen = () => {
       meal_id: meals.length > 0 ? meals[meals.length - 1].meal_id + 1 : 1,
       name: mealName,
       details: "",
+      ingredients: [],
+      quantities: [],
     };
     setMeals([...meals, newMeal]);
     setMealName("");
     setAddModalVisible(false);
-  };
+  };  
 
   const openEditModal = (meal: Meal) => {
     setSelectedMeal(meal);
     setMealName(meal.name);
     setMealDescription(meal.details || "");
+    setIngredients(meal.ingredients);
+    setQuantities(meal.quantities);
+    setFilteredIngredients(meal.ingredients);
+    setIngredientSearchQuery("");
     setIsEditing(false);
     setEditModalVisible(true);
-  };
+  };  
 
   const saveEdit = () => {
     if (selectedMeal) {
       setMeals((prevMeals) =>
         prevMeals.map((meal) =>
           meal.meal_id === selectedMeal.meal_id
-            ? { ...meal, name: mealName, details: mealDescription }
+            ? {
+                ...meal,
+                name: mealName,
+                details: mealDescription,
+                ingredients: ingredients,
+                quantities: quantities,
+              }
             : meal
         )
       );
@@ -67,6 +84,8 @@ const MealsScreen = () => {
     setEditModalVisible(false);
     setMealName("");
     setMealDescription("");
+    setIngredients([]);
+    setQuantities([]);
     setIsEditing(false);
   };
 
@@ -111,7 +130,7 @@ const MealsScreen = () => {
         containerStyle={styles.searchBarContainer}
         inputContainerStyle={styles.searchInputContainer}
       />
-
+  
       <FlatList
         data={filteredMeals}
         renderItem={({ item }) => (
@@ -123,7 +142,7 @@ const MealsScreen = () => {
         numColumns={1}
         showsVerticalScrollIndicator={false}
       />
-
+  
       <Pressable
         style={[styles.button, styles.buttonOpen]}
         onPress={() => {
@@ -133,7 +152,7 @@ const MealsScreen = () => {
       >
         <Text style={styles.plusButtonText}>+</Text>
       </Pressable>
-
+  
       {/* Add Meal Modal */}
       <Modal animationType="slide" transparent={true} visible={addModalVisible}>
         <View style={styles.centeredView}>
@@ -157,12 +176,11 @@ const MealsScreen = () => {
           </View>
         </View>
       </Modal>
-
+  
       {/* Edit/Delete Meal Modal */}
       <Modal animationType="slide" transparent={true} visible={editModalVisible}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            
             <TextInput
               style={[styles.input, styles.titleInput, styles.reducedPadding]}
               placeholder="Meal Name"
@@ -176,26 +194,92 @@ const MealsScreen = () => {
               <Text style={styles.tableHeaderText}>Ingredient</Text>
               <Text style={styles.tableHeaderText}>Quantity</Text>
             </View>
-
-            {/* Ingredients and Quantities Table with Single Scroll */}
+  
+            {/* Ingredients and Quantities Table */}
             <ScrollView style={styles.tableContainer}>
               <View style={styles.tableRow}>
+                {/* Filtered Ingredients */}
                 <View style={styles.tableColumn}>
-                  {ingredients.map((item, index) => (
-                    <Text key={index} style={styles.tableText}>{item}</Text>
+                  {filteredIngredients.map((item, index) => (
+                    <Pressable
+                      key={`ingredient-${index}`}
+                      style={styles.sharedContainer} // Shared style for consistency
+                      onPress={() => Alert.alert(`You pressed: ${item}`)}
+                    >
+                      <Text style={styles.tableText}>{item}</Text>
+                    </Pressable>
                   ))}
                 </View>
+
+                {/* Editable Quantities */}
                 <View style={styles.tableColumn}>
-                  {quantities.map((qty, index) => (
-                    <Text key={index} style={styles.tableText}>{qty}</Text>
+                  {quantities.slice(0, filteredIngredients.length).map((qty, index) => (
+                    <TextInput
+                      key={`quantity-${index}`}
+                      style={[styles.sharedContainer, styles.quantityInput]}
+                      value={quantities[index]}
+                      editable={isEditing}
+                      onChangeText={(text) => {
+                        const updatedQuantities = [...quantities];
+                        updatedQuantities[index] = text;
+                        setQuantities(updatedQuantities);
+                      }}
+                      placeholder="Enter quantity"
+                    />
                   ))}
                 </View>
               </View>
             </ScrollView>
-
+            {/* Search Bar for Filtering Ingredients */}
+            <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+              <SearchBar
+                placeholder="Search ingredients..."
+                // @ts-ignore
+                onChangeText={(text) => {
+                  setIngredientSearchQuery(text);
+                  const filtered = ingredients.filter((ingredient) =>
+                    ingredient.toLowerCase().includes(text.toLowerCase())
+                  );
+                  setFilteredIngredients(filtered);
+                }}
+                value={ingredientSearchQuery}
+                containerStyle={[
+                  styles.searchBarContainer,
+                  { width: "70%", backgroundColor: "transparent" },
+                ]}
+                inputContainerStyle={[
+                  styles.searchInputContainer,
+                  { backgroundColor: "#e3e3e3" },
+                ]}
+                inputStyle={{ fontSize: 14 }}
+              />
+              <Pressable
+                style={styles.addIngredientButton}
+                onPress={() => {
+                  if (ingredientSearchQuery.trim() !== "") {
+                    const updatedIngredients = [...ingredients, ingredientSearchQuery];
+                    const updatedQuantities = [...quantities, "new qty"];
+                    setIngredients(updatedIngredients);
+                    setQuantities(updatedQuantities);
+                    setFilteredIngredients(updatedIngredients);
+                    setMeals((prevMeals) =>
+                      prevMeals.map((meal) =>
+                        meal.meal_id === selectedMeal?.meal_id
+                          ? { ...meal, ingredients: updatedIngredients, quantities: updatedQuantities }
+                          : meal
+                      )
+                    );
+                    setIngredientSearchQuery("");
+                  } else {
+                    Alert.alert("Invalid Input", "Please enter an ingredient in the search bar.");
+                  }
+                }}
+              >
+                <Text style={styles.addIngredientText}>Add</Text>
+              </Pressable>
+            </View>
             {/* Description Label */}
             <Text style={styles.descriptionLabel}>Description</Text>
-
             <ScrollView style={styles.scrollableBox}>
               <TextInput
                 multiline
@@ -208,11 +292,19 @@ const MealsScreen = () => {
                 onChangeText={setMealDescription}
               />
             </ScrollView>
-
             <View style={styles.buttonRow}>
-              <Pressable style={styles.cancelButton} onPress={() => setEditModalVisible(false)}>
-                <Text style={styles.textStyle}>Cancel</Text>
-              </Pressable>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => {
+                setEditModalVisible(false);
+                setIngredients([]);
+                setQuantities([]);
+                setFilteredIngredients([]);
+                setIngredientSearchQuery("");
+              }}
+            >
+              <Text style={styles.textStyle}>Cancel</Text>
+            </Pressable>
               {isEditing ? (
                 <>
                   <Pressable style={styles.deleteButton} onPress={deleteMeal}>
@@ -232,9 +324,8 @@ const MealsScreen = () => {
         </View>
       </Modal>
     </View>
-  );
+  );  
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -245,12 +336,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0EAD6",
     borderBottomWidth: 0,
     borderTopWidth: 0,
-    marginBottom: 10,
+    marginVertical: 1,
   },
   searchInputContainer: {
     backgroundColor: "white",
-    borderRadius: 5,
-  },
+    borderRadius: 10,
+    height: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },  
   item: {
     backgroundColor: "#ADD8E6",
     marginVertical: 0.7,
@@ -472,8 +566,64 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
   },
   tableText: {
-    fontSize: 16,
+    fontSize: 12,
     paddingVertical: 4,
+  },
+  modalIngredients: {
+    backgroundColor: "#ADD8E6",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginVertical: 4,
+    alignItems: "center",
+  },
+  addIngredientButton: {
+    backgroundColor: "#36454F",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginLeft: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addIngredientText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  quantityContainer: {
+    backgroundColor: "#ADD8E6",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginVertical: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editableQuantity: {
+    backgroundColor: "#ADD8E6",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginVertical: 4,
+    textAlign: "center",
+    color: "black",
+    fontSize: 12,
+  },
+  sharedContainer: {
+    backgroundColor: "#ADD8E6",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginVertical: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40,
+  },
+  quantityInput: {
+    textAlign: "center",
+    color: "black",
+    fontSize: 12,
   },
 });
 
