@@ -321,9 +321,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#36454F",
   },
   textStyle: {
-    color: "white",
-    fontWeight: "normal",
-    textAlign: "center",
+    color: 'white',
+    fontWeight: 'normal',
+    textAlign: 'center',
+
     fontSize: 20,
   },
   plusButtonText: {
