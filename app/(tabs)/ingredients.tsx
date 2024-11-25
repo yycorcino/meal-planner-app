@@ -124,7 +124,8 @@ const IngredientsScreen = () => {
     <View style={styles.container}>
       <SearchBar
         placeholder="Search ingredients..."
-        onChangeText={setSearchQuery} //ignore the error
+        // @ts-ignore
+        onChangeText={setSearchQuery} 
         value={searchQuery}
         platform="default"
         containerStyle={styles.searchBarContainer}
@@ -253,11 +254,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   searchInputContainer: {
-    backgroundColor: "#D3D3D3",
+    backgroundColor: 'white',
     borderRadius: 5,
   },
   item: {
-    backgroundColor: "#92de92",
+    backgroundColor: "#ADD8E6",
     marginVertical: 0.7,
     marginHorizontal: 0.7,
     borderRadius: 5,
