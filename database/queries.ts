@@ -150,3 +150,44 @@ export async function deleteEntry(
   const query = `DELETE FROM ${tableName} WHERE ${clause}`;
   return await fetchByQuery(db, query, params);
 }
+
+/**
+ * All screens will use this function to get delete entry.
+ * @param {SQLiteDatabase} - Database connection.
+ * @param {string} tableName - The targeted table.
+ * @param {getArgumentType} argument - Additional filters.
+ * @param {{ [key: string]: any }} updatingTo - The target columns where the values are updating.
+ * @returns {Promise<any[]>} - A promise that resolves to a number of last inserted row id.
+ * If the write query fails, -1 is returned
+ */
+export async function updateEntry(
+  db: SQLiteDatabase,
+  tableName: string,
+  argument: getArgumentType,
+  updatingTo: { [key: string]: any }
+): Promise<any[]> {
+  // convert to array if isn't already
+  let params: any[] = [];
+  const columnNames = Array.isArray(argument.columnName)
+    ? argument.columnName
+    : [argument.columnName];
+
+  const whereClause = columnNames
+    .map((col, index) => `${col} ${argument.action} ?`)
+    .join(" AND ");
+
+  const setClause = Object.keys(updatingTo)
+    .map((column) => {
+      params.push(updatingTo[column]);
+      return `${column} = ?`;
+    })
+    .join(", ");
+
+  // append at end for the whereClause
+  params.push(
+    ...(Array.isArray(argument.value) ? argument.value : [argument.value])
+  );
+
+  const query = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`;
+  return await fetchByQuery(db, query, params);
+}
