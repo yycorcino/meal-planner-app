@@ -13,7 +13,12 @@ import {
 } from "react-native";
 import { SearchBar } from "react-native-elements";
 import { useSQLiteContext } from "expo-sqlite";
-import { getAll, insertEntry } from "@/database/queries";
+import {
+  deleteEntry,
+  getAll,
+  insertEntry,
+  updateEntry,
+} from "@/database/queries";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { convertOutJSONFormat } from "@/database/utils";
 
@@ -43,27 +48,27 @@ const ListsScreen = () => {
   useEffect(() => {
     const fetchLists = async () => {
       const fetchedIngredients = await getAll(db, "lists");
-      console.log(convertOutJSONFormat(fetchedIngredients, "list_of_meal_ids"));
       setLists(convertOutJSONFormat(fetchedIngredients, "list_of_meal_ids"));
     };
     fetchLists();
   }, [db]);
 
+  // Function to get the meal name when rendering the meals within a list
+  // This function was created due to the fact that it is async.
   const AsyncMealName = ({ meal_id }: { meal_id: number }) => {
     const [mealName, setMealName] = useState<string | null>(null);
 
     useEffect(() => {
       const fetchMealName = async () => {
-        const fetchedName = await getMealName(meal_id); // Fetch meal name
-        setMealName(fetchedName); // Store it in state
+        const fetchedName = await getMealName(meal_id);
+        setMealName(fetchedName);
       };
-
-      fetchMealName(); // Call function to fetch meal name
-    }, [meal_id]); // Run effect when meal_id changes
+      fetchMealName();
+    }, [meal_id]);
 
     return (
       <Text style={styles.scrollableText}>{mealName || "Loading..."}</Text>
-    ); // Render meal name or loading
+    );
   };
 
   const addList = async () => {
@@ -110,6 +115,12 @@ const ListsScreen = () => {
   const saveEdit = () => {
     if (selectedList) {
       const updatedName = listName || selectedList.dateRange;
+      updateEntry(
+        db,
+        "lists",
+        { columnName: "list_id", action: "=", value: selectedList["list_id"] },
+        { name: updatedName }
+      );
       setLists((prevLists) =>
         prevLists.map((list) =>
           list.list_id === selectedList.list_id
@@ -145,12 +156,16 @@ const ListsScreen = () => {
           {
             text: "Delete",
             style: "destructive",
-            onPress: () => {
-              setLists((prevLists) =>
-                prevLists.filter(
-                  (list) => list.list_id !== selectedList.list_id
-                )
-              );
+            onPress: async () => {
+              deleteEntry(db, "lists", {
+                columnName: "list_id",
+                action: "=",
+                value: selectedList.list_id,
+              });
+
+              const fetchedLists = await getAll(db, "lists");
+              setLists(fetchedLists);
+
               setEditModalVisible(false);
             },
           },
@@ -301,12 +316,9 @@ const ListsScreen = () => {
                   key={index}
                   style={styles.item}
                   onPress={() => {
-                    console.log("Item:", item);
-                    console.log("Index:", index);
                     Alert.alert(`Item: ${item}`, `Index: ${index}`);
                   }}
                 >
-                  {/* Render meal name */}
                   <AsyncMealName meal_id={item} />
                 </Pressable>
               ))}
