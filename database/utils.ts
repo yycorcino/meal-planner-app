@@ -12,3 +12,29 @@ export function getDateNow() {
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
+
+export function convertIntoJSONFormat(list: any[], targetColumn: string) {
+  return list.map((item) => {
+    if (Array.isArray(item[targetColumn])) {
+      item[targetColumn] = item[targetColumn].map((value) => `"${value}"`);
+    }
+    return item;
+  });
+}
+
+export function convertOutJSONFormat(list: any[], targetColumn: string) {
+  return list.map((item) => {
+    if (typeof item[targetColumn] === "string") {
+      // Parse the JSON string into an array
+      const parsedArray = JSON.parse(item[targetColumn]);
+
+      // Ensure it's an array and process elements if necessary
+      if (Array.isArray(parsedArray)) {
+        item[targetColumn] = parsedArray.map((value) =>
+          typeof value === "string" ? value.replace(/^"|"$/g, "") : value
+        );
+      }
+    }
+    return item;
+  });
+}
