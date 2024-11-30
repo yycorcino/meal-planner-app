@@ -49,6 +49,23 @@ const ListsScreen = () => {
     fetchLists();
   }, [db]);
 
+  const AsyncMealName = ({ meal_id }: { meal_id: number }) => {
+    const [mealName, setMealName] = useState<string | null>(null);
+
+    useEffect(() => {
+      const fetchMealName = async () => {
+        const fetchedName = await getMealName(meal_id); // Fetch meal name
+        setMealName(fetchedName); // Store it in state
+      };
+
+      fetchMealName(); // Call function to fetch meal name
+    }, [meal_id]); // Run effect when meal_id changes
+
+    return (
+      <Text style={styles.scrollableText}>{mealName || "Loading..."}</Text>
+    ); // Render meal name or loading
+  };
+
   const addList = async () => {
     if (!startDate || !endDate) {
       Alert.alert("Please select both a start date and an end date.");
@@ -104,6 +121,15 @@ const ListsScreen = () => {
     setEditModalVisible(false);
     setListName("");
     setIsEditing(false);
+  };
+
+  const getMealName = async (meal_id: number) => {
+    const fetchedMeal = await getAll(db, "meals", {
+      columnName: "meal_id",
+      action: "=",
+      value: meal_id,
+    });
+    return fetchedMeal[0]["name"];
   };
 
   const deleteList = () => {
@@ -270,7 +296,6 @@ const ListsScreen = () => {
               editable={isEditing}
             />
             <ScrollView style={styles.scrollableBox}>
-              {console.log("Selected List:", selectedList)}
               {selectedList?.list_of_meal_ids.map((item, index) => (
                 <Pressable
                   key={index}
@@ -281,10 +306,12 @@ const ListsScreen = () => {
                     Alert.alert(`Item: ${item}`, `Index: ${index}`);
                   }}
                 >
-                  {/* <Text style={styles.scrollableText}>{item}</Text> */}
+                  {/* Render meal name */}
+                  <AsyncMealName meal_id={item} />
                 </Pressable>
               ))}
             </ScrollView>
+
             <View style={styles.buttonRow}>
               <Pressable
                 style={styles.cancelButton}
