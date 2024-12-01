@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   Pressable,
   TextInput,
+  Platform,
 } from "react-native";
 import CalendarPicker from "react-native-calendar-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
@@ -18,6 +20,8 @@ interface State {
   listName: string;
   startDate: Date | null;
   endDate: Date | null;
+  showStartPicker: boolean;
+  showEndPicker: boolean;
 }
 
 export default class IndexScreen extends Component<{}, State> {
@@ -29,11 +33,15 @@ export default class IndexScreen extends Component<{}, State> {
       listName: "",
       startDate: null,
       endDate: null,
+      showStartPicker: false,
+      showEndPicker: false,
     };
     this.onDateChange = this.onDateChange.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.handleSave = this.handleSave.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
+    this.handleDateChange = this.handleDateChange.bind(this);
+    this.toggleDatePicker = this.toggleDatePicker.bind(this);
   }
 
   onDateChange(date: Date) {
@@ -60,35 +68,80 @@ export default class IndexScreen extends Component<{}, State> {
     this.toggleModal(false);
   }
 
+  handleDateChange(event: any, selectedDate: Date | null, type: "start" | "end") {
+    if (type === "start") {
+      this.setState({
+        startDate: selectedDate,
+        showStartPicker: false, 
+      });
+    } else {
+      this.setState({
+        endDate: selectedDate,
+        showEndPicker: false, 
+      });
+    }
+  }
+
+  toggleDatePicker(type: "start" | "end") {
+    if (type === "start") {
+      this.setState((prevState) => ({
+        showStartPicker: !prevState.showStartPicker,
+      }));
+    } else {
+      this.setState((prevState) => ({
+        showEndPicker: !prevState.showEndPicker,
+      }));
+    }
+  }
+
   render() {
-    const { selectedStartDate, modalVisible, listName } = this.state;
-    const startDate = selectedStartDate ? selectedStartDate.toString() : "";
+    const {
+      selectedStartDate,
+      modalVisible,
+      listName,
+      startDate,
+      endDate,
+      showStartPicker,
+      showEndPicker,
+    } = this.state;
 
     return (
       <IndexScreenWithRouter
         selectedStartDate={selectedStartDate}
         modalVisible={modalVisible}
         listName={listName}
+        startDate={startDate}
+        endDate={endDate}
+        showStartPicker={showStartPicker}
+        showEndPicker={showEndPicker}
         onDateChange={this.onDateChange}
         toggleModal={this.toggleModal}
         handleInputChange={this.handleInputChange}
-        handleSave={this.handleSave} startDate={null} endDate={null}      />
+        handleSave={this.handleSave}
+        handleDateChange={this.handleDateChange}
+        toggleDatePicker={this.toggleDatePicker}
+      />
     );
   }
 }
 
-function IndexScreenWithRouter(
-  props: State & {
-    onDateChange: (date: Date) => void;
-    toggleModal: (visible: boolean) => void;
-    handleInputChange: (inputName: string, value: string) => void;
-    handleSave: () => void;
-  }
-) {
+function IndexScreenWithRouter(props: any) {
   const router = useRouter();
-
-  const { selectedStartDate, modalVisible, listName, onDateChange, toggleModal, handleInputChange, handleSave } = props;
-  const startDate = selectedStartDate ? selectedStartDate.toString() : "";
+  const {
+    selectedStartDate,
+    modalVisible,
+    listName,
+    startDate,
+    endDate,
+    showStartPicker,
+    showEndPicker,
+    onDateChange,
+    toggleModal,
+    handleInputChange,
+    handleSave,
+    handleDateChange,
+    toggleDatePicker,
+  } = props;
 
   return (
     <View style={styles.container}>
@@ -115,7 +168,7 @@ function IndexScreenWithRouter(
       </View>
 
       <View style={styles.dateTextContainer}>
-        <Text>SELECTED DATE: {startDate}</Text>
+        <Text>SELECTED DATE: {selectedStartDate?.toString() || ""}</Text>
       </View>
 
       <Modal
@@ -126,7 +179,7 @@ function IndexScreenWithRouter(
       >
         <View style={styles.modalBackground}>
           <View style={styles.newModalContainer}>
-            <Text style={styles.newModalTitle}>Enter List Name{"\n"} (Optional):</Text>
+            <Text style={styles.newModalTitle}>Enter List Name (Optional):</Text>
 
             <TextInput
               style={styles.textInput}
@@ -137,14 +190,44 @@ function IndexScreenWithRouter(
             />
 
             <Text style={styles.label}>Select Start Date:</Text>
-            <TouchableOpacity style={styles.datePickerButton}>
-              <Text style={styles.datePickerText}>Pick Start Date</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => toggleDatePicker("start")}
+            >
+              <Text style={styles.datePickerText}>
+                {startDate ? startDate.toDateString() : "Pick Start Date"}
+              </Text>
             </TouchableOpacity>
+            {showStartPicker && (
+              <DateTimePicker
+                value={startDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, date) =>
+                  handleDateChange(event, date, "start")
+                }
+              />
+            )}
 
             <Text style={styles.label}>Select End Date:</Text>
-            <TouchableOpacity style={styles.datePickerButton}>
-              <Text style={styles.datePickerText}>Pick End Date</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => toggleDatePicker("end")}
+            >
+              <Text style={styles.datePickerText}>
+                {endDate ? endDate.toDateString() : "Pick End Date"}
+              </Text>
             </TouchableOpacity>
+            {showEndPicker && (
+              <DateTimePicker
+                value={endDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, date) =>
+                  handleDateChange(event, date, "end")
+                }
+              />
+            )}
 
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
