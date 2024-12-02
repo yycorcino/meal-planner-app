@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Modal,
@@ -12,17 +12,25 @@ import {
   ScrollView,
 } from "react-native";
 import { SearchBar } from "react-native-elements";
+import { useSQLiteContext } from "expo-sqlite";
+import { getAll } from "@/database/queries";
+import { getDateNow } from "@/database/utils";
+import { insertEntry, deleteEntry, updateEntry } from "@/database/queries";
+import { NewspaperIcon } from "lucide-react-native";
 
 interface Meal {
   meal_id: number;
+  create_at: string;
+  update_at: string;
+  photo_url: string;
   name: string;
-  details: string;
+  description: string;
 }
 
 const MealsScreen = () => {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [mealName, setMealName] = useState("");
+  const [newMealName, setNewMealName] = useState("");
   const [meals, setMeals] = useState<Meal[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
@@ -31,24 +39,41 @@ const MealsScreen = () => {
   const [ingredients, setIngredients] = useState(["Tomato", "Cheese", "Basil"]);
   const [quantities, setQuantities] = useState(["2 pcs", "100g", "5 leaves"]);
 
-  const addMeal = () => {
-    if (mealName.trim() === "") {
+  const db = useSQLiteContext();
+
+  useEffect(() => {
+    const fetchMeals = async () => {
+      const fetchedMeals = await getAll(db, "meals");
+      setMeals(fetchedMeals);
+    };
+    fetchMeals();
+  }, [db]);
+
+  const addMeal = async () => {
+    if (newMealName.trim() === "") {
       Alert.alert("Enter a meal name");
       return;
     }
-    const newMeal: Meal = {
-      meal_id: meals.length > 0 ? meals[meals.length - 1].meal_id + 1 : 1,
-      name: mealName,
-      details: "",
+
+    const newMeal = {
+      create_at: getDateNow(),
+      update_at: getDateNow(),
+      photo_url: null,
+      name: newMealName,
+      description: "",
     };
-    setMeals([...meals, newMeal]);
-    setMealName("");
+    insertEntry(db, "meals", newMeal);
+
+    const fetchedMeals = await getAll(db, "meals");
+    setMeals(fetchedMeals);
+
+    setNewMealName("");
     setAddModalVisible(false);
   };
 
   const openEditModal = (meal: Meal) => {
     setSelectedMeal(meal);
-    setMealName(meal.name);
+    setNewMealName(meal.name);
     setMealDescription(meal.details || "");
     setIsEditing(false);
     setEditModalVisible(true);
@@ -56,44 +81,58 @@ const MealsScreen = () => {
 
   const saveEdit = () => {
     if (selectedMeal) {
+      updateEntry(
+        db,
+        "meals",
+        { columnName: "meal_id", action: "=", value: selectedMeal.meal_id },
+        { name: newMealName, description: mealDescription }
+      );
+
       setMeals((prevMeals) =>
         prevMeals.map((meal) =>
           meal.meal_id === selectedMeal.meal_id
-            ? { ...meal, name: mealName, details: mealDescription }
+            ? { ...meal, name: newMealName, details: mealDescription }
             : meal
         )
       );
     }
     setEditModalVisible(false);
-    setMealName("");
+    setNewMealName("");
     setMealDescription("");
     setIsEditing(false);
   };
 
-  const deleteMeal = () => {
-    if (selectedMeal) {
-      Alert.alert(
-        "Delete Meal",
-        "Are you sure you want to delete this meal?",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
+  const confirmDeleteMeal = async (meal: Meal) => {
+    Alert.alert(
+      "Delete Meal",
+      "Are you sure you want to delete this meal?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            deleteMeal(meal);
+            setEditModalVisible(false);
           },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: () => {
-              setMeals((prevMeals) =>
-                prevMeals.filter((meal) => meal.meal_id !== selectedMeal.meal_id)
-              );
-              setEditModalVisible(false);
-            },
-          },
-        ],
-        { cancelable: true }
-      );
-    }
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const deleteMeal = async (meal: Meal) => {
+    console.log(meal);
+    deleteEntry(db, "meals", {
+      columnName: "meal_id",
+      action: "=",
+      value: meal.meal_id,
+    });
+    const fetchedMeals = await getAll(db, "meals");
+    setMeals(fetchedMeals);
   };
 
   const filteredMeals = meals.filter((meal) =>
@@ -127,7 +166,7 @@ const MealsScreen = () => {
       <Pressable
         style={[styles.button, styles.buttonOpen]}
         onPress={() => {
-          setMealName("");
+          setNewMealName("");
           setAddModalVisible(true);
         }}
       >
@@ -143,11 +182,14 @@ const MealsScreen = () => {
               style={[styles.input, { textAlign: "center" }]}
               placeholder="e.g. Spaghetti"
               placeholderTextColor="#888888"
-              value={mealName}
-              onChangeText={setMealName}
+              value={newMealName}
+              onChangeText={setNewMealName}
             />
             <View style={styles.buttonRowCompact}>
-              <Pressable style={styles.addCancelButton} onPress={() => setAddModalVisible(false)}>
+              <Pressable
+                style={styles.addCancelButton}
+                onPress={() => setAddModalVisible(false)}
+              >
                 <Text style={styles.textStyle}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.addSaveButton} onPress={addMeal}>
@@ -159,18 +201,21 @@ const MealsScreen = () => {
       </Modal>
 
       {/* Edit/Delete Meal Modal */}
-      <Modal animationType="slide" transparent={true} visible={editModalVisible}>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+      >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            
             <TextInput
               style={[styles.input, styles.titleInput, styles.reducedPadding]}
               placeholder="Meal Name"
-              value={mealName}
-              onChangeText={setMealName}
+              value={newMealName}
+              onChangeText={setNewMealName}
               editable={isEditing}
             />
-            
+
             {/* Table Column Headers */}
             <View style={styles.tableHeaderContainer}>
               <Text style={styles.tableHeaderText}>Ingredient</Text>
@@ -182,12 +227,16 @@ const MealsScreen = () => {
               <View style={styles.tableRow}>
                 <View style={styles.tableColumn}>
                   {ingredients.map((item, index) => (
-                    <Text key={index} style={styles.tableText}>{item}</Text>
+                    <Text key={index} style={styles.tableText}>
+                      {item}
+                    </Text>
                   ))}
                 </View>
                 <View style={styles.tableColumn}>
                   {quantities.map((qty, index) => (
-                    <Text key={index} style={styles.tableText}>{qty}</Text>
+                    <Text key={index} style={styles.tableText}>
+                      {qty}
+                    </Text>
                   ))}
                 </View>
               </View>
@@ -210,12 +259,18 @@ const MealsScreen = () => {
             </ScrollView>
 
             <View style={styles.buttonRow}>
-              <Pressable style={styles.cancelButton} onPress={() => setEditModalVisible(false)}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => setEditModalVisible(false)}
+              >
                 <Text style={styles.textStyle}>Cancel</Text>
               </Pressable>
               {isEditing ? (
                 <>
-                  <Pressable style={styles.deleteButton} onPress={deleteMeal}>
+                  <Pressable
+                    style={styles.deleteButton}
+                    onPress={() => confirmDeleteMeal(selectedMeal)}
+                  >
                     <Text style={styles.textStyle}>Delete</Text>
                   </Pressable>
                   <Pressable style={styles.saveButton} onPress={saveEdit}>
@@ -223,7 +278,10 @@ const MealsScreen = () => {
                   </Pressable>
                 </>
               ) : (
-                <Pressable style={styles.editButton} onPress={() => setIsEditing(true)}>
+                <Pressable
+                  style={styles.editButton}
+                  onPress={() => setIsEditing(true)}
+                >
                   <Text style={styles.textStyle}>Edit</Text>
                 </Pressable>
               )}
@@ -353,7 +411,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: "30%", 
+    width: "30%",
   },
   saveButton: {
     backgroundColor: "#36454F",
