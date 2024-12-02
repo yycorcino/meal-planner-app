@@ -120,6 +120,8 @@ export async function insertEntry<T>(
   const paramHolders = params.map(() => "?").join(", "); // "?, ?, ?"
 
   const query = `INSERT INTO ${tableName} (${columns}) VALUES (${paramHolders})`;
+  console.log(query);
+  console.log(params);
   return await fetchByQuery(db, query, params);
 }
 

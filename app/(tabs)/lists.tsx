@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Modal,
@@ -12,13 +12,21 @@ import {
   ScrollView,
 } from "react-native";
 import { SearchBar } from "react-native-elements";
+import { useSQLiteContext } from "expo-sqlite";
+import {
+  deleteEntry,
+  getAll,
+  insertEntry,
+  updateEntry,
+} from "@/database/queries";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { convertOutJSONFormat } from "@/database/utils";
 
 interface List {
-  list_id: number;
+  list_id?: number;
   name: string;
-  items: string[];
-  dateRange: string;
+  list_of_meal_ids: string | number[];
+  description: string;
 }
 
 const ListsScreen = () => {
@@ -35,8 +43,35 @@ const ListsScreen = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const db = useSQLiteContext();
 
-  const addList = () => {
+  useEffect(() => {
+    const fetchLists = async () => {
+      const fetchedIngredients = await getAll(db, "lists");
+      setLists(convertOutJSONFormat(fetchedIngredients, "list_of_meal_ids"));
+    };
+    fetchLists();
+  }, [db]);
+
+  // Function to get the meal name when rendering the meals within a list
+  // This function was created due to the fact that it is async.
+  const AsyncMealName = ({ meal_id }: { meal_id: number }) => {
+    const [mealName, setMealName] = useState<string | null>(null);
+
+    useEffect(() => {
+      const fetchMealName = async () => {
+        const fetchedName = await getMealName(meal_id);
+        setMealName(fetchedName);
+      };
+      fetchMealName();
+    }, [meal_id]);
+
+    return (
+      <Text style={styles.scrollableText}>{mealName || "Loading..."}</Text>
+    );
+  };
+
+  const addList = async () => {
     if (!startDate || !endDate) {
       Alert.alert("Please select both a start date and an end date.");
       return;
@@ -52,14 +87,18 @@ const ListsScreen = () => {
       year: "numeric",
     })}`;
 
-    const newList: List = {
-      list_id: lists.length > 0 ? lists[lists.length - 1].list_id + 1 : 1,
+    const newListItem: List = {
       name: listName || defaultListName,
-      items: ["Yum Yum"],
-      dateRange: defaultListName,
+      list_of_meal_ids: "[]",
+      description: "",
     };
 
-    setLists([...lists, newList]);
+    insertEntry(db, "lists", newListItem);
+
+    const fetchedLists = await getAll(db, "lists");
+    setLists(fetchedLists);
+
+    // clear modal entries
     setListName("");
     setStartDate(null);
     setEndDate(null);
@@ -76,6 +115,12 @@ const ListsScreen = () => {
   const saveEdit = () => {
     if (selectedList) {
       const updatedName = listName || selectedList.dateRange;
+      updateEntry(
+        db,
+        "lists",
+        { columnName: "list_id", action: "=", value: selectedList["list_id"] },
+        { name: updatedName }
+      );
       setLists((prevLists) =>
         prevLists.map((list) =>
           list.list_id === selectedList.list_id
@@ -87,6 +132,15 @@ const ListsScreen = () => {
     setEditModalVisible(false);
     setListName("");
     setIsEditing(false);
+  };
+
+  const getMealName = async (meal_id: number) => {
+    const fetchedMeal = await getAll(db, "meals", {
+      columnName: "meal_id",
+      action: "=",
+      value: meal_id,
+    });
+    return fetchedMeal[0]["name"];
   };
 
   const deleteList = () => {
@@ -102,10 +156,16 @@ const ListsScreen = () => {
           {
             text: "Delete",
             style: "destructive",
-            onPress: () => {
-              setLists((prevLists) =>
-                prevLists.filter((list) => list.list_id !== selectedList.list_id)
-              );
+            onPress: async () => {
+              deleteEntry(db, "lists", {
+                columnName: "list_id",
+                action: "=",
+                value: selectedList.list_id,
+              });
+
+              const fetchedLists = await getAll(db, "lists");
+              setLists(fetchedLists);
+
               setEditModalVisible(false);
             },
           },
@@ -236,7 +296,11 @@ const ListsScreen = () => {
       </Modal>
 
       {/* Edit List Modal */}
-      <Modal animationType="slide" transparent={true} visible={editModalVisible}>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+      >
         <View style={styles.centeredView}>
           <View style={styles.editListModal}>
             <TextInput
@@ -247,16 +311,19 @@ const ListsScreen = () => {
               editable={isEditing}
             />
             <ScrollView style={styles.scrollableBox}>
-              {selectedList?.items.map((item, index) => (
+              {selectedList?.list_of_meal_ids.map((item, index) => (
                 <Pressable
                   key={index}
                   style={styles.item}
-                  onPress={() => Alert.alert("Nothing yet")}
+                  onPress={() => {
+                    Alert.alert(`Item: ${item}`, `Index: ${index}`);
+                  }}
                 >
-                  <Text style={styles.scrollableText}>{item}</Text>
+                  <AsyncMealName meal_id={item} />
                 </Pressable>
               ))}
             </ScrollView>
+
             <View style={styles.buttonRow}>
               <Pressable
                 style={styles.cancelButton}
@@ -333,7 +400,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    width: "65%", 
+    width: "65%",
   },
   editListModal: {
     margin: 20,
@@ -348,7 +415,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    width: "85%", 
+    width: "85%",
     maxHeight: "75%",
   },
   modalText: {
@@ -415,14 +482,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: "45%", 
+    width: "45%",
   },
   addSaveButton: {
     backgroundColor: "#36454F",
     borderRadius: 5,
     padding: 10,
     marginVertical: 5,
-    width: "45%",  
+    width: "45%",
   },
   textStyle: {
     color: "white",
@@ -442,13 +509,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
-    gap: 10,            
+    gap: 10,
     marginTop: 15,
   },
   buttonRowCompact: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "80%", 
+    width: "80%",
     marginTop: 10,
   },
   scrollableBox: {
