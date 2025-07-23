@@ -154,12 +154,17 @@ const IngredientsScreen = () => {
               </ScrollView>
             )}
 
-            <Pressable style={styles.editButton} onPress={() => setActiveModal("add")}>
-              <Text style={styles.textStyle}>Edit</Text>
-            </Pressable>
-            <Pressable style={styles.deleteButton} onPress={deleteIngredient}>
-              <Text style={styles.textStyle}>Delete</Text>
-            </Pressable>
+            {/* Edit + Delete in same row */}
+            <View style={styles.buttonRow}>
+              <Pressable style={[styles.editButton, styles.halfWidth]} onPress={() => setActiveModal("add")}>
+                <Text style={styles.textStyle}>Edit</Text>
+              </Pressable>
+              <Pressable style={[styles.deleteButton, styles.halfWidth]} onPress={deleteIngredient}>
+                <Text style={styles.textStyle}>Delete</Text>
+              </Pressable>
+            </View>
+
+            {/* Cancel below */}
             <Pressable
               style={styles.cancelButton}
               onPress={() => {
@@ -316,6 +321,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 5,
+    marginBottom: 5,
+  },
+  halfWidth: {
+    flex: 1,
   },
 });
 
