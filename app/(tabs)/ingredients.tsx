@@ -6,34 +6,41 @@ import {
   Text,
   Pressable,
   View,
-  FlatList,
   StatusBar,
   TextInput,
+  ScrollView,
+  Dimensions,
 } from "react-native";
 import { SearchBar } from "react-native-elements";
 import { useSQLiteContext } from "expo-sqlite";
-import {
-  getAll,
-  insertEntry,
-  deleteEntry,
-  updateEntry,
-} from "@/database/queries";
+import { Product, Meal } from "@/database/types";
+import FloatingAddButton from "@/components/FloatingAddButton";
+import { getAll, insertEntry, deleteEntry, updateEntry, fetchByQuery } from "@/database/queries";
 
-interface Product {
-  product_id: number;
-  name: string;
-}
-
+const { width, height } = Dimensions.get("window");
 const IngredientsScreen = () => {
-  const [displayVisible, setDisplayVisible] = useState(false);
-  const [modalData, setModalData] = useState("");
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [ingredientName, setIngredientName] = useState("");
+  const [activeModal, setActiveModal] = useState<null | "view" | "add">(null);
+  const [selectedIngredient, setSelectedIngredient] = useState<Product | null>(null);
+  const [mealsForIngredient, setMealsForIngredient] = useState<Meal[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [ingredients, setIngredients] = useState<Product[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [ingredientList, setIngredients] = useState<Product[]>([]);
   const db = useSQLiteContext();
+
+  useEffect(() => {
+    const getMealsByIngredientId = async (productId: number) => {
+      const query = `
+        SELECT meals.*
+        FROM meals
+        JOIN ingredient ON meals.meal_id = ingredient.meal_id
+        WHERE ingredient.product_id = ?
+      `;
+      const results = await fetchByQuery(db, query, [productId]);
+      setMealsForIngredient(results);
+    };
+    if (selectedIngredient?.product_id != null) {
+      getMealsByIngredientId(selectedIngredient.product_id);
+    }
+  }, [selectedIngredient]);
 
   useEffect(() => {
     const fetchIngredients = async () => {
@@ -43,193 +50,161 @@ const IngredientsScreen = () => {
     fetchIngredients();
   }, [db]);
 
+  const viewIngredient = (ingredient: Product) => {
+    setSelectedIngredient(ingredient);
+    setActiveModal("view");
+  };
+
+  const openAddModal = () => {
+    setSelectedIngredient({ name: "", product_id: -1 }); // Temp ID for new item
+    setActiveModal("add");
+  };
+
   const addIngredient = async () => {
-    if (ingredientName.trim() === "") {
-      Alert.alert("Enter a ingredient name");
+    if (!selectedIngredient || selectedIngredient.name.trim() === "") {
+      Alert.alert("Provide a name for the ingredient");
       return;
     }
-    console.log("Adding ingredient:", ingredientName);
-
-    const newProduct = {
-      name: ingredientName,
-    };
-    insertEntry(db, "product", newProduct);
-
-    const fetchedMeals = await getAll(db, "product");
-    setIngredients(fetchedMeals);
-
-    setIngredientName("");
-    setSearchQuery(""); // clear search query to make sure the new meal is visible
-    setModalVisible(false);
+    await insertEntry(db, "product", { name: selectedIngredient.name });
+    const fetched = await getAll(db, "product");
+    setIngredients(fetched);
+    setSelectedIngredient(null);
+    setSearchQuery("");
+    setActiveModal(null);
   };
 
-  const doNothing = () => {
-    console.log("meal opened");
-
-    //Placeholder function for opening link to meal
-  };
-
-  const viewIngredient = (
-    title: React.SetStateAction<string>,
-    id: React.SetStateAction<string>
-  ) => {
-    setModalTitle(title);
-    setModalData(id);
-    setDisplayVisible(true);
-  };
-
-  const editIngredient = async () => {
-    setIsEditing(true);
-    setIngredientName(modalTitle);
-  };
-
-  const saveEdit = async () => {
-    updateEntry(
+  const updateIngredient = async () => {
+    if (!selectedIngredient) return;
+    await updateEntry(
       db,
       "product",
       {
         columnName: "product_id",
         action: "=",
-        value: modalData,
+        value: selectedIngredient.product_id,
       },
-      { name: ingredientName }
+      { name: selectedIngredient.name }
     );
-    const fetchedMeals = await getAll(db, "product");
-    setIngredients(fetchedMeals);
-
-    setIsEditing(false);
-    setDisplayVisible(false);
-    setIngredientName("");
+    const fetched = await getAll(db, "product");
+    setIngredients(fetched);
+    setSelectedIngredient(null);
+    setActiveModal(null);
   };
 
   const deleteIngredient = async () => {
-    deleteEntry(db, "product", {
+    if (!selectedIngredient) return;
+    await deleteEntry(db, "product", {
       columnName: "product_id",
       action: "=",
-      value: modalData,
+      value: selectedIngredient.product_id,
     });
-    const fetchedMeals = await getAll(db, "product");
-    setIngredients(fetchedMeals);
-
-    setDisplayVisible(false);
+    const fetched = await getAll(db, "product");
+    setIngredients(fetched);
+    setSelectedIngredient(null);
+    setActiveModal(null);
   };
 
-  //filter ingredients based on user search
-  const filteredIngredients = ingredients.filter((ingredient) =>
+  const filteredIngredients = ingredientList.filter((ingredient) =>
     ingredient.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  //page container
   return (
     <View style={styles.container}>
       <SearchBar
-        placeholder="Search ingredients..."
+        placeholder="Search by ingredients"
         // @ts-ignore
-        onChangeText={setSearchQuery} 
+        onChangeText={setSearchQuery}
         value={searchQuery}
         platform="default"
         containerStyle={styles.searchBarContainer}
         inputContainerStyle={styles.searchInputContainer}
       />
 
-      <FlatList
-        data={filteredIngredients}
-        renderItem={({ item }) => (
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+        {filteredIngredients.map((item) => (
           <Pressable
-            style={styles.item}
-            onPress={() => viewIngredient(item.name, item.product_id)}
+            key={item.product_id}
+            style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow]}
+            onPress={() => viewIngredient(item)}
           >
-            <Text style={styles.textStyle}>{item.name}</Text>
+            <Text style={styles.tableCell}>{item.name}</Text>
           </Pressable>
-        )}
-        keyExtractor={(item) => item.product_id}
-        numColumns={2}
-        showsVerticalScrollIndicator={false}
-      />
+        ))}
+      </ScrollView>
 
-      <Pressable
-        style={[styles.button, styles.buttonOpen]}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.plusButtonText}>+</Text>
-      </Pressable>
+      <FloatingAddButton onPress={openAddModal} />
 
-      <Modal animationType="slide" transparent={true} visible={displayVisible}>
+      {/* View Modal */}
+      <Modal animationType="slide" transparent={true} visible={activeModal === "view"}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {isEditing ? (
-              <>
-                <Text>Edit Ingredient Name:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter new name"
-                  value={ingredientName}
-                  onChangeText={setIngredientName}
-                />
-                <Pressable style={styles.saveButton} onPress={saveEdit}>
-                  <Text style={styles.textStyle}>Save</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Text>{modalTitle}</Text>
-                <Pressable style={styles.editButton} onPress={editIngredient}>
-                  <Text style={styles.textStyle}>Edit</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.deleteButton}
-                  onPress={deleteIngredient}
-                >
-                  <Text style={styles.textStyle}>Delete</Text>
-                </Pressable>
-              </>
+            <Text style={styles.modalText}>{selectedIngredient?.name}</Text>
+
+            {mealsForIngredient.length > 0 && (
+              <ScrollView style={{ maxHeight: 200, width: "100%", marginBottom: 15 }}>
+                {mealsForIngredient.map((meal) => (
+                  <Pressable
+                    key={meal.meal_id}
+                    style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow, { marginBottom: 5 }]}
+                    onPress={() => Alert.alert("Meal Selected", meal.name)}
+                  >
+                    <Text style={styles.tableCell}>{meal.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
             )}
+
+            <Pressable style={styles.editButton} onPress={() => setActiveModal("add")}>
+              <Text style={styles.textStyle}>Edit</Text>
+            </Pressable>
+            <Pressable style={styles.deleteButton} onPress={deleteIngredient}>
+              <Text style={styles.textStyle}>Delete</Text>
+            </Pressable>
             <Pressable
               style={styles.cancelButton}
-              onPress={() => setDisplayVisible(false)}
+              onPress={() => {
+                setActiveModal(null);
+                setSelectedIngredient(null);
+              }}
             >
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
-            <FlatList
-              data={ingredients}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={[styles.item, styles.item]}
-                  onPress={() => doNothing()}
-                >
-                  {}
-                  <Text style={styles.textStyle}>{item.name} </Text>
-                </Pressable>
-              )}
-              keyExtractor={(item) => item.product_id}
-              numColumns={1}
-              showsVerticalScrollIndicator={false}
-            />
           </View>
         </View>
       </Modal>
 
+      {/* Add/Edit Modal */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(!modalVisible)}
+        visible={activeModal === "add"}
+        onRequestClose={() => setActiveModal(null)}
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            <Text style={styles.modalText}>Enter Ingredient Name:</Text>
+            <Text style={styles.modalText}>
+              {selectedIngredient ? "Edit Ingredient Name:" : "Enter Ingredient Name:"}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. avocados"
-              value={ingredientName}
-              onChangeText={setIngredientName}
+              placeholder="e.g. Avocado"
+              value={selectedIngredient?.name || ""}
+              onChangeText={(text) =>
+                setSelectedIngredient((prev) => (prev ? { ...prev, name: text } : { name: text, product_id: -1 }))
+              }
             />
-            <Pressable style={styles.saveButton} onPress={addIngredient}>
+            <Pressable
+              style={styles.saveButton}
+              onPress={selectedIngredient?.product_id === -1 ? addIngredient : updateIngredient}
+            >
               <Text style={styles.textStyle}>Save</Text>
             </Pressable>
             <Pressable
               style={styles.cancelButton}
-              onPress={() => setModalVisible(false)}
+              onPress={() => {
+                setActiveModal(null);
+                setSelectedIngredient(null);
+              }}
             >
               <Text style={styles.textStyle}>Cancel</Text>
             </Pressable>
@@ -240,12 +215,12 @@ const IngredientsScreen = () => {
   );
 };
 
-//styling
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
     backgroundColor: "#F0EAD6",
+    paddingHorizontal: 5,
   },
   searchBarContainer: {
     backgroundColor: "#F0EAD6",
@@ -254,17 +229,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   searchInputContainer: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 5,
   },
-  item: {
+  tableRow: {
+    flexDirection: "row",
     backgroundColor: "#ADD8E6",
-    marginVertical: 0.7,
-    marginHorizontal: 0.7,
-    borderRadius: 5,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    borderRadius: 3,
+    marginBottom: 4,
+  },
+  pressedRow: {
+    backgroundColor: "#87CEEB",
+  },
+  tableCell: {
     flex: 1,
-    alignItems: "center",
-    padding: 20,
+    fontSize: 18,
+    color: "white",
   },
   centeredView: {
     flex: 1,
@@ -273,16 +257,15 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   modalView: {
+    width: width * 0.9,
+    maxHeight: height * 0.7,
     margin: 20,
     backgroundColor: "white",
     borderRadius: 21,
     padding: 35,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
@@ -293,15 +276,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     width: "100%",
     paddingHorizontal: 10,
-  },
-  button: {
-    borderRadius: 0,
-    padding: 4,
-    marginVertical: 0,
-    height: 48,
-  },
-  buttonOpen: {
-    backgroundColor: "#36454F",
   },
   saveButton: {
     backgroundColor: "#36454F",
@@ -317,27 +291,6 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     width: "100%",
   },
-  buttonClose: {
-    backgroundColor: "#36454F",
-  },
-  textStyle: {
-    color: 'white',
-    fontWeight: 'normal',
-    textAlign: 'center',
-
-    fontSize: 20,
-  },
-  plusButtonText: {
-    color: "white",
-    fontWeight: "200",
-    textAlign: "center",
-    fontSize: 42,
-    marginTop: -7,
-  },
-  modalText: {
-    marginBottom: 25,
-    textAlign: "center",
-  },
   editButton: {
     backgroundColor: "#36454F",
     borderRadius: 5,
@@ -351,6 +304,18 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 5,
     width: "100%",
+  },
+  textStyle: {
+    color: "white",
+    fontWeight: "normal",
+    textAlign: "center",
+    fontSize: 20,
+  },
+  modalText: {
+    marginBottom: 25,
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
 
