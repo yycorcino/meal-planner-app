@@ -11,11 +11,11 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import { SearchBar } from "react-native-elements";
 import { useSQLiteContext } from "expo-sqlite";
 import { Product, Meal } from "@/database/types";
-import FloatingAddButton from "@/components/FloatingAddButton";
 import { getAll, insertEntry, deleteEntry, updateEntry, fetchByQuery } from "@/database/queries";
+import FloatingAddButton from "@/components/FloatingAddButton";
+import TabPageTemplate from "@/components/TabPageTemplate";
 
 const { width, height } = Dimensions.get("window");
 const IngredientsScreen = () => {
@@ -110,27 +110,19 @@ const IngredientsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <SearchBar
-        placeholder="Search by ingredients"
-        // @ts-ignore
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        platform="default"
-        containerStyle={styles.searchBarContainer}
-        inputContainerStyle={styles.searchInputContainer}
+      <TabPageTemplate
+        searchBarConfig={{
+          placeholder: "Search by ingredients",
+          searchQuery: searchQuery,
+          setSearchQuery: setSearchQuery,
+        }}
+        listConfig={{
+          items: filteredIngredients,
+          pressKey: (item) => item.product_id,
+          pressLabelKey: (item) => item.name,
+          onPressAction: (item) => viewIngredient(item),
+        }}
       />
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
-        {filteredIngredients.map((item) => (
-          <Pressable
-            key={item.product_id}
-            style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow]}
-            onPress={() => viewIngredient(item)}
-          >
-            <Text style={styles.tableCell}>{item.name}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
 
       <FloatingAddButton onPress={openAddModal} />
 
@@ -193,6 +185,7 @@ const IngredientsScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="e.g. Avocado"
+              placeholderTextColor={"#c7c7cd"}
               value={selectedIngredient?.name || ""}
               onChangeText={(text) =>
                 setSelectedIngredient((prev) => (prev ? { ...prev, name: text } : { name: text, product_id: -1 }))
