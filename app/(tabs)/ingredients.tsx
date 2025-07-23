@@ -13,17 +13,34 @@ import {
 } from "react-native";
 import { SearchBar } from "react-native-elements";
 import { useSQLiteContext } from "expo-sqlite";
-import { Product } from "@/database/types";
+import { Product, Meal } from "@/database/types";
 import FloatingAddButton from "@/components/FloatingAddButton";
-import { getAll, insertEntry, deleteEntry, updateEntry } from "@/database/queries";
+import { getAll, insertEntry, deleteEntry, updateEntry, fetchByQuery } from "@/database/queries";
 
 const { width, height } = Dimensions.get("window");
 const IngredientsScreen = () => {
   const [activeModal, setActiveModal] = useState<null | "view" | "add">(null);
   const [selectedIngredient, setSelectedIngredient] = useState<Product | null>(null);
+  const [mealsForIngredient, setMealsForIngredient] = useState<Meal[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [ingredientList, setIngredients] = useState<Product[]>([]);
   const db = useSQLiteContext();
+
+  useEffect(() => {
+    const getMealsByIngredientId = async (productId: number) => {
+      const query = `
+        SELECT meals.*
+        FROM meals
+        JOIN ingredient ON meals.meal_id = ingredient.meal_id
+        WHERE ingredient.product_id = ?
+      `;
+      const results = await fetchByQuery(db, query, [productId]);
+      setMealsForIngredient(results);
+    };
+    if (selectedIngredient?.product_id != null) {
+      getMealsByIngredientId(selectedIngredient.product_id);
+    }
+  }, [selectedIngredient]);
 
   useEffect(() => {
     const fetchIngredients = async () => {
@@ -45,7 +62,7 @@ const IngredientsScreen = () => {
 
   const addIngredient = async () => {
     if (!selectedIngredient || selectedIngredient.name.trim() === "") {
-      Alert.alert("Enter an ingredient");
+      Alert.alert("Provide a name for the ingredient");
       return;
     }
     await insertEntry(db, "product", { name: selectedIngredient.name });
@@ -122,12 +139,22 @@ const IngredientsScreen = () => {
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>{selectedIngredient?.name}</Text>
-            <Pressable
-              style={styles.editButton}
-              onPress={() => {
-                setActiveModal("add");
-              }}
-            >
+
+            {mealsForIngredient.length > 0 && (
+              <ScrollView style={{ maxHeight: 200, width: "100%", marginBottom: 15 }}>
+                {mealsForIngredient.map((meal) => (
+                  <Pressable
+                    key={meal.meal_id}
+                    style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow, { marginBottom: 5 }]}
+                    onPress={() => Alert.alert("Meal Selected", meal.name)}
+                  >
+                    <Text style={styles.tableCell}>{meal.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+
+            <Pressable style={styles.editButton} onPress={() => setActiveModal("add")}>
               <Text style={styles.textStyle}>Edit</Text>
             </Pressable>
             <Pressable style={styles.deleteButton} onPress={deleteIngredient}>
@@ -160,7 +187,7 @@ const IngredientsScreen = () => {
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. avocados"
+              placeholder="e.g. Avocado"
               value={selectedIngredient?.name || ""}
               onChangeText={(text) =>
                 setSelectedIngredient((prev) => (prev ? { ...prev, name: text } : { name: text, product_id: -1 }))
@@ -193,7 +220,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
     backgroundColor: "#F0EAD6",
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
   },
   searchBarContainer: {
     backgroundColor: "#F0EAD6",
@@ -288,6 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     textAlign: "center",
     fontSize: 18,
+    fontWeight: "bold",
   },
 });
 

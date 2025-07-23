@@ -17,15 +17,7 @@ import { getAll } from "@/database/queries";
 import { getDateNow } from "@/database/utils";
 import { insertEntry, deleteEntry, updateEntry } from "@/database/queries";
 import { NewspaperIcon } from "lucide-react-native";
-
-interface Meal {
-  meal_id: number;
-  create_at: string;
-  update_at: string;
-  photo_url: string;
-  name: string;
-  description: string;
-}
+import { Meal } from "@/database/types";
 
 const MealsScreen = () => {
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -298,6 +290,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
     backgroundColor: "#F0EAD6",
+    paddingHorizontal: 5,
   },
   searchBarContainer: {
     backgroundColor: "#F0EAD6",
