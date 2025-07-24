@@ -11,6 +11,7 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { Product, Meal } from "@/database/types";
 import { getAll, insertEntry, deleteEntry, updateEntry, fetchByQuery } from "@/database/queries";
@@ -25,6 +26,7 @@ const IngredientsScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [ingredientList, setIngredients] = useState<Product[]>([]);
   const db = useSQLiteContext();
+  const router = useRouter();
 
   useEffect(() => {
     const getMealsByIngredientId = async (productId: number) => {
@@ -127,7 +129,7 @@ const IngredientsScreen = () => {
       <FloatingAddButton onPress={openAddModal} />
 
       {/* View Modal */}
-      <Modal animationType="slide" transparent={true} visible={activeModal === "view"}>
+      <Modal animationType="fade" transparent={true} visible={activeModal === "view"}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>{selectedIngredient?.name}</Text>
@@ -138,7 +140,12 @@ const IngredientsScreen = () => {
                   <Pressable
                     key={meal.meal_id}
                     style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow, { marginBottom: 5 }]}
-                    onPress={() => Alert.alert("Meal Selected", meal.name)}
+                    onPress={() => {
+                      router.push(`/meals/${meal.meal_id}`);
+                      setSelectedIngredient(null);
+                      setSearchQuery("");
+                      setActiveModal(null);
+                    }}
                   >
                     <Text style={styles.tableCell}>{meal.name}</Text>
                   </Pressable>
