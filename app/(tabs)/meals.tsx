@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, StatusBar } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { Meal } from "@/database/types";
 import { getAll } from "@/database/queries";
@@ -12,13 +12,15 @@ const MealsScreen = () => {
   const db = useSQLiteContext();
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchMeals = async () => {
-      const fetchedMeals = await getAll(db, "meals");
-      setMeals(fetchedMeals);
-    };
-    fetchMeals();
-  }, [db]);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchMeals = async () => {
+        const fetchedMeals = await getAll(db, "meals");
+        setMeals(fetchedMeals);
+      };
+      fetchMeals();
+    }, [db])
+  );
 
   const filteredMeals = mealList.filter((meal) => meal.name.toLowerCase().includes(searchQuery.toLowerCase()));
 

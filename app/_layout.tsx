@@ -66,7 +66,7 @@ function RootLayoutNav() {
             <Stack.Screen
               name="meals/[id]"
               options={{
-                title: "Meal Details",
+                title: "Details",
                 headerBackTitle: "Back",
               }}
             />

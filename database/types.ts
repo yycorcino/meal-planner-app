@@ -13,9 +13,11 @@ export interface Meal {
 }
 
 export type Ingredient = {
+  product_id: number;
   ingredient_name: string;
   quantity: number | string;
   unit_name: string | null;
+  action: null | "new" | "edit" | "delete";
 };
 
 export interface MealWithIngredients extends Meal {
