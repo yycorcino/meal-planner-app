@@ -1,9 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { ActivityIndicator } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -67,6 +63,13 @@ function RootLayoutNav() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+            <Stack.Screen
+              name="meals/[id]"
+              options={{
+                title: "Details",
+                headerBackTitle: "Back",
+              }}
+            />
           </Stack>
         </SQLiteProvider>
       </React.Suspense>

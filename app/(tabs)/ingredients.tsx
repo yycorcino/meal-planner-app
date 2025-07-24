@@ -11,11 +11,12 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import { SearchBar } from "react-native-elements";
+import { useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { Product, Meal } from "@/database/types";
-import FloatingAddButton from "@/components/FloatingAddButton";
 import { getAll, insertEntry, deleteEntry, updateEntry, fetchByQuery } from "@/database/queries";
+import FloatingAddButton from "@/components/FloatingAddButton";
+import TabPageTemplate from "@/components/TabPageTemplate";
 
 const { width, height } = Dimensions.get("window");
 const IngredientsScreen = () => {
@@ -25,6 +26,7 @@ const IngredientsScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [ingredientList, setIngredients] = useState<Product[]>([]);
   const db = useSQLiteContext();
+  const router = useRouter();
 
   useEffect(() => {
     const getMealsByIngredientId = async (productId: number) => {
@@ -110,32 +112,24 @@ const IngredientsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <SearchBar
-        placeholder="Search by ingredients"
-        // @ts-ignore
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        platform="default"
-        containerStyle={styles.searchBarContainer}
-        inputContainerStyle={styles.searchInputContainer}
+      <TabPageTemplate
+        searchBarConfig={{
+          placeholder: "Search by ingredients",
+          searchQuery: searchQuery,
+          setSearchQuery: setSearchQuery,
+        }}
+        listConfig={{
+          items: filteredIngredients,
+          pressKey: (item) => item.product_id,
+          pressLabelKey: (item) => item.name,
+          onPressAction: (item) => viewIngredient(item),
+        }}
       />
-
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
-        {filteredIngredients.map((item) => (
-          <Pressable
-            key={item.product_id}
-            style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow]}
-            onPress={() => viewIngredient(item)}
-          >
-            <Text style={styles.tableCell}>{item.name}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
 
       <FloatingAddButton onPress={openAddModal} />
 
       {/* View Modal */}
-      <Modal animationType="slide" transparent={true} visible={activeModal === "view"}>
+      <Modal animationType="fade" transparent={true} visible={activeModal === "view"}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalText}>{selectedIngredient?.name}</Text>
@@ -146,7 +140,12 @@ const IngredientsScreen = () => {
                   <Pressable
                     key={meal.meal_id}
                     style={({ pressed }) => [styles.tableRow, pressed && styles.pressedRow, { marginBottom: 5 }]}
-                    onPress={() => Alert.alert("Meal Selected", meal.name)}
+                    onPress={() => {
+                      router.push(`/meals/${meal.meal_id}`);
+                      setSelectedIngredient(null);
+                      setSearchQuery("");
+                      setActiveModal(null);
+                    }}
                   >
                     <Text style={styles.tableCell}>{meal.name}</Text>
                   </Pressable>
@@ -154,12 +153,17 @@ const IngredientsScreen = () => {
               </ScrollView>
             )}
 
-            <Pressable style={styles.editButton} onPress={() => setActiveModal("add")}>
-              <Text style={styles.textStyle}>Edit</Text>
-            </Pressable>
-            <Pressable style={styles.deleteButton} onPress={deleteIngredient}>
-              <Text style={styles.textStyle}>Delete</Text>
-            </Pressable>
+            {/* Edit + Delete in same row */}
+            <View style={styles.buttonRow}>
+              <Pressable style={[styles.editButton, styles.halfWidth]} onPress={() => setActiveModal("add")}>
+                <Text style={styles.textStyle}>Edit</Text>
+              </Pressable>
+              <Pressable style={[styles.deleteButton, styles.halfWidth]} onPress={deleteIngredient}>
+                <Text style={styles.textStyle}>Delete</Text>
+              </Pressable>
+            </View>
+
+            {/* Cancel below */}
             <Pressable
               style={styles.cancelButton}
               onPress={() => {
@@ -188,6 +192,7 @@ const IngredientsScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="e.g. Avocado"
+              placeholderTextColor={"#c7c7cd"}
               value={selectedIngredient?.name || ""}
               onChangeText={(text) =>
                 setSelectedIngredient((prev) => (prev ? { ...prev, name: text } : { name: text, product_id: -1 }))
@@ -316,6 +321,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 5,
+    marginBottom: 5,
+  },
+  halfWidth: {
+    flex: 1,
   },
 });
 
