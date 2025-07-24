@@ -75,7 +75,7 @@ export default function MealDetailScreen() {
         action: "=",
         value: meal.meal_id,
       },
-      { name: meal.name }
+      { name: meal.name, description: meal.description }
     );
 
     for (const ingredient of meal.ingredients) {
