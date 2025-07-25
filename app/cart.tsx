@@ -14,20 +14,15 @@ export default function CartScreen() {
   ]);
 
   const toggleChecked = (id: string) => {
-    const updatedItems = cartItems.map((item) =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    );
+    const updatedItems = cartItems.map((item) => (item.id === id ? { ...item, checked: !item.checked } : item));
     setCartItems(updatedItems);
   };
-// @ts-ignore
+  // @ts-ignore
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
       {}
       <TouchableOpacity
-        style={[
-          styles.circleButton,
-          item.checked && styles.filledCircle,
-        ]}
+        style={[styles.circleButton, item.checked && styles.filledCircle]}
         onPress={() => toggleChecked(item.id)}
       />
       <View style={styles.itemDetails}>
@@ -39,7 +34,6 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Cart</Text>
       <FlatList
         data={cartItems}
         keyExtractor={(item) => item.id}

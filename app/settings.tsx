@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Button,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Button } from "react-native";
 
 export default function SettingsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -19,13 +11,12 @@ export default function SettingsScreen() {
 
   const handleSend = () => {
     console.log("Feedback:", inputText);
-    setModalVisible(false); // Close modal
-    setInputText(""); // Clear input
+    setModalVisible(false);
+    setInputText("");
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ACCOUNT INFORMATION</Text>
         <TouchableOpacity style={styles.button}>

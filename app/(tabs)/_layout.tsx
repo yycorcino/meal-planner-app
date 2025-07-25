@@ -1,6 +1,7 @@
 import React from "react";
-import { CalendarDays, List, CookingPot, Carrot } from "lucide-react-native";
-import { Tabs } from "expo-router";
+import { CalendarDays, List, CookingPot, Carrot, ShoppingCart, Settings } from "lucide-react-native";
+import { Tabs, useRouter } from "expo-router";
+import { TouchableOpacity } from "react-native";
 
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
@@ -8,6 +9,7 @@ import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
 
   return (
     <Tabs
@@ -23,6 +25,22 @@ export default function TabLayout() {
         options={{
           title: "Calendar",
           tabBarIcon: ({ color }) => <CalendarDays color={color} size={15} />,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.push("/cart")}
+              style={{ marginLeft: 16 }} // spacing from edge
+            >
+              <ShoppingCart size={25} color="#36454F" strokeWidth={2.5} />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push("/settings")}
+              style={{ marginRight: 16 }} // spacing from edge
+            >
+              <Settings size={25} color="#36454F" strokeWidth={2.5} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <Tabs.Screen
