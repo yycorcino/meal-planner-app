@@ -13,7 +13,36 @@ export default function ListDetailScreen() {
   const db = useSQLiteContext();
   const navigation = useNavigation();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, new_meal_id } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (!new_meal_id) return;
+    const fetchNewMeal = async () => {
+      const fetchMealResponse = await getAll(db, "meals", {
+        columnName: "meal_id",
+        action: "=",
+        value: new_meal_id,
+      });
+      if (fetchMealResponse.length === 0) return;
+      let mealInfo = fetchMealResponse[0];
+      mealInfo.action = "new";
+
+      setList((prevList) => {
+        if (!prevList) return prevList;
+
+        // Avoid adding duplicate
+        const alreadyAdded = prevList.list_of_meal_ids.includes(mealInfo.meal_id);
+        if (alreadyAdded) return prevList;
+
+        return {
+          ...prevList,
+          list_of_meals: [...prevList.list_of_meals, mealInfo],
+          list_of_meal_ids: [...prevList.list_of_meal_ids, mealInfo.meal_id],
+        };
+      });
+    };
+    fetchNewMeal();
+  }, [new_meal_id]);
 
   useEffect(() => {
     if (!id) return;
@@ -188,7 +217,10 @@ export default function ListDetailScreen() {
         )}
       </View>
       {isEditing && (
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push({ pathname: `/meals/select`, params: { list_id: list.list_id } })}
+        >
           <Text style={styles.addButtonText}>+ Add Meal</Text>
         </TouchableOpacity>
       )}
