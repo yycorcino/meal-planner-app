@@ -11,7 +11,7 @@ const MealSelect = () => {
   const [mealList, setMeals] = useState<Meal[]>([]);
   const db = useSQLiteContext();
   const router = useRouter();
-  const { list_id } = useLocalSearchParams();
+  const { goBackPath } = useLocalSearchParams();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -41,7 +41,7 @@ const MealSelect = () => {
             router.back();
             router.setParams({ new_meal_id: item.meal_id });
             router.navigate({
-              pathname: `/lists/${list_id}` as RelativePathString,
+              pathname: goBackPath as RelativePathString,
               params: { new_meal_id: item.meal_id },
             });
           },
