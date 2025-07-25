@@ -23,3 +23,18 @@ export type Ingredient = {
 export interface MealWithIngredients extends Meal {
   ingredients: Ingredient[];
 }
+
+export interface List {
+  list_id: number;
+  name: string;
+  list_of_meal_ids: string | number[];
+  description: string;
+}
+
+export interface MealWithAction extends Meal {
+  action: null | "new" | "delete";
+}
+
+export interface ListWithMeals extends List {
+  list_of_meals: MealWithAction[];
+}

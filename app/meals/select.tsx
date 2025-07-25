@@ -1,42 +1,50 @@
 import React, { useState } from "react";
 import { StyleSheet, View, StatusBar } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams, RelativePathString } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { List } from "@/database/types";
+import { Meal } from "@/database/types";
 import { getAll } from "@/database/queries";
 import TabPageTemplate from "@/components/TabPageTemplate";
 
-const ListScreen = () => {
+const MealSelect = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [arrayList, setArray] = useState<List[]>([]);
+  const [mealList, setMeals] = useState<Meal[]>([]);
   const db = useSQLiteContext();
   const router = useRouter();
+  const { list_id } = useLocalSearchParams();
 
   useFocusEffect(
     React.useCallback(() => {
       const fetchMeals = async () => {
-        const fetchedMeals = await getAll(db, "lists");
-        setArray(fetchedMeals);
+        const fetchedMeals = await getAll(db, "meals");
+        setMeals(fetchedMeals);
       };
       fetchMeals();
     }, [db])
   );
 
-  const filteredArray = arrayList.filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredMeals = mealList.filter((meal) => meal.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <View style={styles.container}>
       <TabPageTemplate
         searchBarConfig={{
-          placeholder: "Search for lists",
+          placeholder: "Search for meals",
           searchQuery: searchQuery,
           setSearchQuery: setSearchQuery,
         }}
         listConfig={{
-          items: filteredArray,
-          pressKey: (item) => item.list_id,
+          items: filteredMeals,
+          pressKey: (item) => item.meal_id,
           pressLabelKey: (item) => item.name,
-          onPressAction: (item) => router.push(`/lists/${item.list_id}`),
+          onPressAction: (item) => {
+            router.back();
+            router.setParams({ new_meal_id: item.meal_id });
+            router.navigate({
+              pathname: `/lists/${list_id}` as RelativePathString,
+              params: { new_meal_id: item.meal_id },
+            });
+          },
         }}
       />
     </View>
@@ -52,4 +60,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ListScreen;
+export default MealSelect;

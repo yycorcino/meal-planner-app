@@ -70,6 +70,20 @@ function RootLayoutNav() {
                 headerBackTitle: "Back",
               }}
             />
+            <Stack.Screen
+              name="meals/select"
+              options={{
+                title: "Select Meal",
+                headerBackTitle: "Back",
+              }}
+            />
+            <Stack.Screen
+              name="lists/[id]"
+              options={{
+                title: "Details",
+                headerBackTitle: "Back",
+              }}
+            />
           </Stack>
         </SQLiteProvider>
       </React.Suspense>
