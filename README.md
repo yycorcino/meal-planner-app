@@ -10,6 +10,31 @@
 
 <!-- ABOUT THE PROJECT -->
 
+<div class="photo-row">
+  <img src="./readme_assets/IMG_3005.png" alt="IMG_3005" />
+  <img src="./readme_assets/IMG_3006.png" alt="IMG_3006" />
+  <img src="./readme_assets/IMG_3007.png" alt="IMG_3007" />
+  <img src="./readme_assets/IMG_3008.png" alt="IMG_3008" />
+  <img src="./readme_assets/IMG_3009.png" alt="IMG_3009" />
+  <img src="./readme_assets/IMG_3010.png" alt="IMG_3010" />
+  <img src="./readme_assets/IMG_3011.png" alt="IMG_3011" />
+</div>
+
+<style>
+  .photo-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;      /* scrolls on small screens */
+    padding: 6px 0;
+    justify-content: center; /* centers when content fits */
+  }
+  .photo-row img {
+    height: 120px;
+    flex: 0 0 auto;         /* prevents wrapping */
+    border-radius: 8px;
+  }
+</style>
+
 ### About The Project
 
 This is the system requirements for the Meal Planner App version 1.0. This version of the meal planner is a simplified shell of its final product but creates a fundamental and functional base that features can be added to over time. The goals for this version are to streamline the process of making a shopping list. Specifically for the purpose of convenience and to ease pressure on the user financially by preparing them with a precise shopping list of only what they need. We will accomplish this in version 1.0 with three main goals.
