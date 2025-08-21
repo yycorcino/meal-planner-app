@@ -10,30 +10,15 @@
 
 <!-- ABOUT THE PROJECT -->
 
-<div class="photo-row">
-  <img src="./readme_assets/IMG_3005.png" alt="IMG_3005" />
-  <img src="./readme_assets/IMG_3006.png" alt="IMG_3006" />
-  <img src="./readme_assets/IMG_3007.png" alt="IMG_3007" />
-  <img src="./readme_assets/IMG_3008.png" alt="IMG_3008" />
-  <img src="./readme_assets/IMG_3009.png" alt="IMG_3009" />
-  <img src="./readme_assets/IMG_3010.png" alt="IMG_3010" />
-  <img src="./readme_assets/IMG_3011.png" alt="IMG_3011" />
-</div>
-
-<style>
-  .photo-row {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;      /* scrolls on small screens */
-    padding: 6px 0;
-    justify-content: center; /* centers when content fits */
-  }
-  .photo-row img {
-    height: 120px;
-    flex: 0 0 auto;         /* prevents wrapping */
-    border-radius: 8px;
-  }
-</style>
+<p align="center">
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3005.PNG" alt="IMG_3005" height="120" />
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3006.PNG" alt="IMG_3006" height="120" />
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3007.PNG" alt="IMG_3007" height="120" />
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3008.PNG" alt="IMG_3008" height="120" />
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3009.PNG" alt="IMG_3009" height="120" />
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3010.PNG" alt="IMG_3010" height="120" />
+  <img src="https://github.com/yycorcino/meal-planner-app/raw/master/readme_assets/IMG_3011.PNG" alt="IMG_3011" height="120" />
+</p>
 
 ### About The Project
 
