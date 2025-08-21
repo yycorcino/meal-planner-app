@@ -219,7 +219,7 @@ export default function ListDetailScreen() {
       {isEditing && (
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => router.push({ pathname: `/meals/select`, params: { list_id: list.list_id } })}
+          onPress={() => router.push({ pathname: `/meals/select`, params: { goBackPath: `/lists/${list.list_id}` } })}
         >
           <Text style={styles.addButtonText}>+ Add Meal</Text>
         </TouchableOpacity>

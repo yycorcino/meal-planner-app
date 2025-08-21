@@ -38,3 +38,7 @@ export interface MealWithAction extends Meal {
 export interface ListWithMeals extends List {
   list_of_meals: MealWithAction[];
 }
+
+export interface Calendar extends Meal {
+  plan_at: String;
+}

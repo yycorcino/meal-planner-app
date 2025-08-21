@@ -56,13 +56,27 @@ function RootLayoutNav() {
       <React.Suspense fallback={<ActivityIndicator size="large" />}>
         <SQLiteProvider
           databaseName="cookbook.db"
-          //onInit={migrateDatabase}
+          // onInit={migrateDatabase}
           assetSource={{ assetId: require("../assets/cookbook.db") }}
           useSuspense
         >
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+            <Stack.Screen
+              name="cart"
+              options={{
+                title: "Your Cart",
+                headerBackTitle: "Back",
+              }}
+            />
+            <Stack.Screen
+              name="settings"
+              options={{
+                title: "Settings",
+                headerBackTitle: "Back",
+              }}
+            />
             <Stack.Screen
               name="meals/[id]"
               options={{

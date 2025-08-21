@@ -1,303 +1,226 @@
-import React, { Component } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   Text,
   View,
-  Modal,
+  StatusBar,
+  FlatList,
+  Dimensions,
   TouchableOpacity,
-  Pressable,
-  TextInput,
 } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { Calendar } from "@/database/types";
+import { fetchByQuery, insertEntry } from "@/database/queries";
 import CalendarPicker from "react-native-calendar-picker";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import FloatingAddButton from "@/components/FloatingAddButton";
 
-interface State {
-  selectedStartDate: Date | null;
-  modalVisible: boolean;
-  listName: string;
-  startDate: Date | null;
-  endDate: Date | null;
-}
+const { width } = Dimensions.get("window");
+const CalendarScreen = () => {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [displayedMonth, setDisplayedMonth] = useState<Date>(new Date());
+  const [monthlyMeals, setMonthlyMeals] = useState<Calendar[]>([]);
+  const [mealAdded, setMealAdded] = useState(false);
 
-export default class IndexScreen extends Component<{}, State> {
-  constructor(props: {}) {
-    super(props);
-    this.state = {
-      selectedStartDate: null,
-      modalVisible: false,
-      listName: "",
-      startDate: null,
-      endDate: null,
-    };
-    this.onDateChange = this.onDateChange.bind(this);
-    this.toggleModal = this.toggleModal.bind(this);
-    this.handleSave = this.handleSave.bind(this);
-    this.handleInputChange = this.handleInputChange.bind(this);
-  }
-
-  onDateChange(date: Date) {
-    this.setState({
-      selectedStartDate: date,
-      modalVisible: true,
-    });
-  }
-
-  toggleModal(visible: boolean) {
-    this.setState({ modalVisible: visible });
-  }
-
-  handleInputChange(inputName: string, value: string) {
-    this.setState({ [inputName]: value } as unknown as Pick<State, keyof State>);
-  }
-
-  handleSave() {
-    const { listName, startDate, endDate } = this.state;
-    console.log("List Name:", listName);
-    console.log("Start Date:", startDate);
-    console.log("End Date:", endDate);
-
-    this.toggleModal(false);
-  }
-
-  render() {
-    const { selectedStartDate, modalVisible, listName } = this.state;
-    const startDate = selectedStartDate ? selectedStartDate.toString() : "";
-
-    return (
-      <IndexScreenWithRouter
-        selectedStartDate={selectedStartDate}
-        modalVisible={modalVisible}
-        listName={listName}
-        onDateChange={this.onDateChange}
-        toggleModal={this.toggleModal}
-        handleInputChange={this.handleInputChange}
-        handleSave={this.handleSave} startDate={null} endDate={null}      />
-    );
-  }
-}
-
-function IndexScreenWithRouter(
-  props: State & {
-    onDateChange: (date: Date) => void;
-    toggleModal: (visible: boolean) => void;
-    handleInputChange: (inputName: string, value: string) => void;
-    handleSave: () => void;
-  }
-) {
+  const db = useSQLiteContext();
   const router = useRouter();
+  const { new_meal_id } = useLocalSearchParams();
+  const flatListRef = useRef<FlatList<Calendar>>(null);
 
-  const { selectedStartDate, modalVisible, listName, onDateChange, toggleModal, handleInputChange, handleSave } = props;
-  const startDate = selectedStartDate ? selectedStartDate.toString() : "";
+  useEffect(() => {
+    // Fetch meals when displayedMonth or mealAdded changes
+    fetchMealsByMonth();
+  }, [displayedMonth, mealAdded]);
+
+  useEffect(() => {
+    // Add meal when new_meal_id changes
+    if (new_meal_id) {
+      addMealToCalendar();
+    }
+  }, [new_meal_id]);
+
+  useEffect(() => {
+    // Scroll FlatList to first meal matching selectedDate when monthlyMeals updates
+    if (!selectedDate || monthlyMeals.length === 0) return;
+
+    const selectedISO = selectedDate.toISOString().substring(0, 10);
+    const index = monthlyMeals.findIndex((meal) =>
+      meal.plan_at.startsWith(selectedISO)
+    );
+    if (index !== -1 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
+  }, [monthlyMeals, selectedDate]);
+
+  const fetchMealsByMonth = async () => {
+    if (!displayedMonth) return;
+    const year = displayedMonth.getFullYear();
+    const month = displayedMonth.getMonth();
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
+
+    const results = await fetchByQuery(
+      db,
+      `
+      SELECT c.*, m.name
+      FROM calendar c
+      LEFT JOIN meals m ON c.meal_id = m.meal_id
+      WHERE c.plan_at BETWEEN ? AND ?
+      ORDER BY c.plan_at ASC
+      `,
+      [startDate.toISOString(), endDate.toISOString()]
+    );
+    setMonthlyMeals(results);
+    setMealAdded(false);
+  };
+
+  const addMealToCalendar = async () => {
+    if (selectedDate === null || new_meal_id === null) return;
+
+    const selectedISOFormat = selectedDate.toISOString();
+
+    // Check if meal with same id already planned for the selected date
+    const existsOnDate = monthlyMeals.some(
+      (meal) =>
+        meal.meal_id.toString() === new_meal_id.toString() &&
+        meal.plan_at === selectedISOFormat
+    );
+
+    // Check if meal_id already exists anywhere in the current month
+    const existsInMonth = monthlyMeals.some(
+      (meal) => meal.meal_id.toString() === new_meal_id.toString()
+    );
+
+    if (!existsOnDate && !existsInMonth) {
+      await insertEntry(db, "calendar", {
+        meal_id: Number(new_meal_id),
+        plan_at: selectedISOFormat,
+      });
+      setMealAdded(true);
+    }
+  };
+
+  const onDateChange = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const handleMonthChange = (date: Date) => {
+    // Set displayedMonth to the month the user navigated to
+    setDisplayedMonth(date);
+
+    // Reset selectedDate to the 1st of that month
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    setSelectedDate(firstDayOfMonth);
+  };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.settingsButton}
-        onPress={() => router.push("/settings")}
-      >
-        <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.cartButton}
-        onPress={() => router.push("/cart")}
-      >
-        <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-
-      <View style={styles.calendarContainer}>
+      <View style={styles.calendarWrapper}>
         <CalendarPicker
           onDateChange={onDateChange}
-          selectedDayColor="#FFFFFF"
-          selectedDayTextColor="#000000"
+          onMonthChange={handleMonthChange}
+          selectedStartDate={selectedDate}
+          initialDate={displayedMonth}
+          allowRangeSelection={false}
+          selectedDayColor="#36454F"
+          selectedDayTextColor="#fff"
+          todayBackgroundColor="#D3D3D3"
+          textStyle={{ fontSize: 20 }}
+          previousTitleStyle={{ fontSize: 18 }}
+          nextTitleStyle={{ fontSize: 18 }}
+          width={width - 20}
+          weekdaysStyle={{ fontWeight: "bold", fontSize: 16 }}
+          monthsStyle={{ fontWeight: "bold", fontSize: 18 }}
         />
       </View>
 
-      <View style={styles.dateTextContainer}>
-        <Text>SELECTED DATE: {startDate}</Text>
-      </View>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => toggleModal(false)}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.newModalContainer}>
-            <Text style={styles.newModalTitle}>Enter List Name{"\n"} (Optional):</Text>
-
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Thanksgiving Dinner"
-              placeholderTextColor="#A9A9A9"
-              value={listName}
-              onChangeText={(text) => handleInputChange("listName", text)}
-            />
-
-            <Text style={styles.label}>Select Start Date:</Text>
-            <TouchableOpacity style={styles.datePickerButton}>
-              <Text style={styles.datePickerText}>Pick Start Date</Text>
+      <Text style={styles.monthHeader}>Meals for this month</Text>
+      {monthlyMeals.length > 0 ? (
+        <FlatList
+          ref={flatListRef}
+          data={monthlyMeals}
+          keyExtractor={(item) => `${item.meal_id}-${item.plan_at}`}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => router.push(`/meals/${item.meal_id}`)}
+              style={styles.mealCard}
+            >
+              <Text style={styles.mealTitle}>{item.name}</Text>
+              <Text style={styles.mealDate}>
+                {new Date(item.plan_at).toDateString()}
+              </Text>
             </TouchableOpacity>
+          )}
+          contentContainerStyle={styles.verticalListContainer}
+          onScrollToIndexFailed={() => {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }}
+        />
+      ) : (
+        <Text style={styles.noMealsText}>No meals planned</Text>
+      )}
 
-            <Text style={styles.label}>Select End Date:</Text>
-            <TouchableOpacity style={styles.datePickerButton}>
-              <Text style={styles.datePickerText}>Pick End Date</Text>
-            </TouchableOpacity>
-
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => toggleModal(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleSave}
-              >
-                <Text style={styles.buttonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Pressable
-        style={[styles.button, styles.buttonOpen]}
-        onPress={() => toggleModal(true)}
-      >
-        <Text style={styles.plusButtonText}>+</Text>
-      </Pressable>
+      <FloatingAddButton
+        onPress={() =>
+          router.push({
+            pathname: "/meals/select",
+            params: { goBackPath: "/" },
+          })
+        }
+      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    marginTop: StatusBar.currentHeight || 0,
     backgroundColor: "#F0EAD6",
-    marginTop: 0,
-  },
-  settingsButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    padding: 10,
-    backgroundColor: "#36454F",
-    borderRadius: 5,
-  },
-  cartButton: {
-    position: "absolute",
-    top: 5,
-    right: 50,
-    padding: 10,
-    backgroundColor: "#36454F",
-    borderRadius: 5,
-  },
-  calendarContainer: {
-    marginTop: 177,
-  },
-  dateTextContainer: {
-    marginTop: 20,
-    alignItems: "center",
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  newModalContainer: {
-    width: 250,
-    padding: 20,
-    backgroundColor: "white",
-    borderRadius: 10,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  newModalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  textInput: {
-    width: "100%",
-    height: 40,
-    borderColor: "#A9A9A9",
-    borderWidth: 1,
-    borderRadius: 5,
     paddingHorizontal: 10,
-    marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-    textAlign: "center", 
+  calendarWrapper: {
+    marginTop: 20,
   },
-  datePickerButton: {
+  verticalListContainer: {
+    paddingVertical: 10,
     width: "100%",
-    height: 40,
-    backgroundColor: "#D3D3D3",
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
   },
-  datePickerText: {
-    color: "#000",
-    fontSize: 16,
-  },
-  modalButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    width: "70%",
-  },
-  modalButton: {
-    width: "45%",
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 5,
-    marginHorizontal: 8,
-  },
-  cancelButton: {
+  mealCard: {
     backgroundColor: "#36454F",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    width: "100%",
   },
-  saveButton: {
-    backgroundColor: "#36454F",
-  },
-  buttonText: {
+  mealTitle: {
     color: "white",
+    fontWeight: "bold",
     fontSize: 16,
-    fontWeight: "300",
+    marginBottom: 4,
   },
-  button: {
-    position: "absolute",
-    bottom: 0,
-    left: "0%",
-    transform: [{ translateX: -50 }],
-    height: 48,
-    width: 530,
-    backgroundColor: "#36454F",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonOpen: {
-    backgroundColor: "#36454F",
-  },
-  plusButtonText: {
+  mealDate: {
     color: "white",
-    fontWeight: "200",
-    textAlign: "center",
-    fontSize: 42,
-    marginTop: -4,
+    fontSize: 12,
+  },
+  noMealsText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: "#555",
+    fontStyle: "italic",
+  },
+  monthHeader: {
+    marginTop: 30,
+    marginBottom: 10,
+    fontSize: 20,
+    fontWeight: "bold",
+    alignSelf: "flex-start",
+    color: "#333",
   },
 });
+
+export default CalendarScreen;
