@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, Text, View, StatusBar, FlatList, Dimensions, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  StatusBar,
+  FlatList,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { Calendar } from "@/database/types";
@@ -36,9 +44,15 @@ const CalendarScreen = () => {
     if (!selectedDate || monthlyMeals.length === 0) return;
 
     const selectedISO = selectedDate.toISOString().substring(0, 10);
-    const index = monthlyMeals.findIndex((meal) => meal.plan_at.startsWith(selectedISO));
+    const index = monthlyMeals.findIndex((meal) =>
+      meal.plan_at.startsWith(selectedISO)
+    );
     if (index !== -1 && flatListRef.current) {
-      flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      flatListRef.current.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.5,
+      });
     }
   }, [monthlyMeals, selectedDate]);
 
@@ -71,14 +85,21 @@ const CalendarScreen = () => {
 
     // Check if meal with same id already planned for the selected date
     const existsOnDate = monthlyMeals.some(
-      (meal) => meal.meal_id.toString() === new_meal_id.toString() && meal.plan_at === selectedISOFormat
+      (meal) =>
+        meal.meal_id.toString() === new_meal_id.toString() &&
+        meal.plan_at === selectedISOFormat
     );
 
     // Check if meal_id already exists anywhere in the current month
-    const existsInMonth = monthlyMeals.some((meal) => meal.meal_id.toString() === new_meal_id.toString());
+    const existsInMonth = monthlyMeals.some(
+      (meal) => meal.meal_id.toString() === new_meal_id.toString()
+    );
 
     if (!existsOnDate && !existsInMonth) {
-      await insertEntry(db, "calendar", { meal_id: Number(new_meal_id), plan_at: selectedISOFormat });
+      await insertEntry(db, "calendar", {
+        meal_id: Number(new_meal_id),
+        plan_at: selectedISOFormat,
+      });
       setMealAdded(true);
     }
   };
@@ -88,7 +109,12 @@ const CalendarScreen = () => {
   };
 
   const handleMonthChange = (date: Date) => {
+    // Set displayedMonth to the month the user navigated to
     setDisplayedMonth(date);
+
+    // Reset selectedDate to the 1st of that month
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    setSelectedDate(firstDayOfMonth);
   };
 
   return (
@@ -119,9 +145,14 @@ const CalendarScreen = () => {
           data={monthlyMeals}
           keyExtractor={(item) => `${item.meal_id}-${item.plan_at}`}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => router.push(`/meals/${item.meal_id}`)} style={styles.mealCard}>
+            <TouchableOpacity
+              onPress={() => router.push(`/meals/${item.meal_id}`)}
+              style={styles.mealCard}
+            >
               <Text style={styles.mealTitle}>{item.name}</Text>
-              <Text style={styles.mealDate}>{new Date(item.plan_at).toDateString()}</Text>
+              <Text style={styles.mealDate}>
+                {new Date(item.plan_at).toDateString()}
+              </Text>
             </TouchableOpacity>
           )}
           contentContainerStyle={styles.verticalListContainer}
@@ -133,7 +164,14 @@ const CalendarScreen = () => {
         <Text style={styles.noMealsText}>No meals planned</Text>
       )}
 
-      <FloatingAddButton onPress={() => router.push({ pathname: "/meals/select", params: { goBackPath: "/" } })} />
+      <FloatingAddButton
+        onPress={() =>
+          router.push({
+            pathname: "/meals/select",
+            params: { goBackPath: "/" },
+          })
+        }
+      />
     </View>
   );
 };
